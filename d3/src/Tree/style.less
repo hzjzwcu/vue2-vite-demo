@@ -1,0 +1,134 @@
+@keyframes sca {
+    from {
+        transform: scale(0.2)
+    }
+
+    to {
+        transform: scale(1)
+    }
+}
+
+.tree-svg {
+    animation: sca 0.8s cubic-bezier(.02, .96, .43, 1);
+    font-size: 14px;
+
+    &.highlight-mode {
+        .node {
+            opacity: 0.1;
+            pointer-events: none;
+        }
+
+        .node-link {
+            opacity: 0.1;
+        }
+    }
+
+    .nodes-group {
+        .node {
+            &.highlight {
+                opacity: 1;
+                pointer-events: all;
+            }
+
+            .root-node-wrapper {
+                .root-node {
+                    font-size: 18px;
+
+                    .root-node__icon {
+                        width: 32px;
+                        height: 32px;
+                        background-color: #1b63d9;
+                        border-radius: 5px;
+                        margin: 0 auto;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+
+                    .root-node__name {
+                        font-size: 18px;
+                        margin-top: 10px;
+                        line-height: 1.2;
+                        text-align: center;
+                        color: #1b63d9;
+                        font-weight: bolder;
+                    }
+                }
+            }
+
+            .parent-node-wrapper {
+                &.left {
+                    text-align: right;
+                }
+
+                .parent-node {
+                    // width: 100%;
+                    height: 100%;
+                    display: inline-flex;
+                    box-sizing: border-box;
+                    font-weight: bolder;
+                    text-align: center;
+                    color: #fff;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    padding: 0 5px;
+                    align-items: center;
+                    justify-content: center;
+
+                    .text {
+                        line-height: 1;
+                    }
+
+                    &:hover {
+                        filter: brightness(1.2);
+                    }
+                }
+            }
+
+            .leaf-node-wrapper {
+                .leaf-node {
+                    display: block;
+                    color: #494966;
+                    padding: 0 4px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+
+                    .node-text {
+                        display: inline-block;
+                        white-space: nowrap;
+                        cursor: pointer;
+                    }
+
+                    &.more .node-text {
+                        color: #3978dd;
+                    }
+                }
+            }
+
+            .line-text {
+                font-size: 12px;
+                fill: #3978dd;
+                cursor: pointer;
+
+                &:hover {
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+
+    .links-group {
+
+        /* 连接线样式 */
+        .node-link {
+            &.highlight {
+                opacity: 1;
+            }
+
+            fill: none;
+            stroke: #d2d2e5;
+            stroke-width: 1;
+        }
+    }
+
+}
