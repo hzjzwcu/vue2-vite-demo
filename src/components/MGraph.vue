@@ -219,7 +219,7 @@ export default {
       // 调用缩放器
       this.svg
         .call(zoomHandle)
-        .call(zoomHandle.translateBy, width / 2 - 200, height / 2) // 初始化平移位置
+        .call(zoomHandle.translateBy, width / 2, height / 2) // 初始化平移位置
         .on("dbclick.zoom", null); // 禁用双击缩放
       this.tree = d3.tree().size([width, height]); // 创建布局
       // 处理数据
@@ -254,9 +254,9 @@ export default {
           d.children.push(expandNode);
         }
         d._children = d.children; // 存储未展开的节点
-        // if (d.depth >= 2) {
-        //   d.children = null; // 横向超过2层收起
-        // }
+        if (d.depth >= 2) {
+          d.children = null; // 横向超过2层收起
+        }
       });
       this.updateGraph(this.root);
     },
@@ -265,7 +265,7 @@ export default {
       if (!this.root) return;
 
       // 重新布局
-      this.tree(this.root);
+      this.tree.nodeSize([40, 370])(this.root);
 
       const nodes = this.root.descendants();
       const links = this.root.links();
@@ -275,39 +275,29 @@ export default {
         // 左右分树
         const leftTree = [];
         const rightTree = [];
+
         this.root.children.forEach((child, i) => {
           if (i < 2) rightTree.push(child); // 前两个放右边
           else leftTree.push(child); // 后两个放左边
         });
 
-        // 左树 x 取反
+        // 左树取反居中
+        const leftMiddleOffset = (leftTree[0].x + leftTree.at(-1).x) / 2;
         leftTree.forEach((node) => {
           node.descendants().forEach((d) => {
-            d.y = -d.depth * 180; // 左边
+            d.y = -d.depth * 180 ; // 左边
+            d.x -= leftMiddleOffset;
           });
         });
 
-        // 右树正常
+        // 右树居中
+        const rightMiddleOffset = (rightTree[0].x + rightTree.at(-1).x) / 2;
         rightTree.forEach((node) => {
           node.descendants().forEach((d) => {
             d.y = d.depth * 180; // 右边
+            d.x -= rightMiddleOffset;
           });
         });
-
-        // === 居中对齐 ===
-        if (leftTree.length && rightTree.length) {
-          const leftYs = leftTree.map((d) => d.x);
-          const rightYs = rightTree.map((d) => d.x);
-
-          const leftMid = (Math.min(...leftYs) + Math.max(...leftYs)) / 2;
-          const rightMid = (Math.min(...rightYs) + Math.max(...rightYs)) / 2;
-
-          const offset = (leftMid + rightMid) / 2;
-
-          nodes.forEach((d) => {
-            d.x -= offset; // 整体上移/下移居中
-          });
-        }
       }
 
       // ==== 节点处理 ====
@@ -539,10 +529,15 @@ export default {
         console.log("drawNode err", err);
       }
     },
-    // 绘制节点展开收起按钮
+    // 绘制节点旁边的加减号
     drawCircle(d) {
       try {
-        const { id, label } = d.data;
+        console.log("d.x", d.x);
+        console.log("d.y", d.y);
+        const { id, label, isLeaf } = d.data;
+        if (id === "root" || isLeaf === "1") {
+          return;
+        }
         const textWidth = this.getTextWidth(label);
         let gMark = d3
           .select(`#g${id}`)
@@ -550,7 +545,10 @@ export default {
           .attr("class", "node-circle hover")
           .attr("stroke", "#ffffff");
         // 调整按钮坐标
-        const offsetX = 30 + textWidth;
+        let offsetX = 30 + textWidth;
+        if (d.y < 0) {
+          offsetX = -offsetX;
+        }
         gMark
           .append("circle")
           .attr("class", "node-circle")

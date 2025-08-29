@@ -23,7 +23,7 @@ export const nodes0 = {
   ],
   2: [
     {
-      isLeaf: "0",
+      isLeaf: "1",
       linkPathDirection: "I",
       relationClsGrp: "2",
       relationClsName: "对外投资",
@@ -33,7 +33,7 @@ export const nodes0 = {
       targetCustType: "Crop",
     },
     {
-      isLeaf: "0",
+      isLeaf: "1",
       linkPathDirection: "I",
       relationClsGrp: "2",
       relationClsName: "对外投资",
@@ -45,7 +45,7 @@ export const nodes0 = {
   ],
   3: [
     {
-      isLeaf: "0",
+      isLeaf: "1",
       linkPathDirection: "I",
       relationClsGrp: "3",
       relationClsName: "集团母公司",
@@ -55,7 +55,7 @@ export const nodes0 = {
       targetCustType: "Crop",
     },
     {
-      isLeaf: "0",
+      isLeaf: "1",
       linkPathDirection: "I",
       relationClsGrp: "3",
       relationClsName: "集团母公司",
@@ -67,7 +67,7 @@ export const nodes0 = {
   ],
   4: [
     {
-      isLeaf: "0",
+      isLeaf: "1",
       linkPathDirection: "I",
       relationClsGrp: "4",
       relationClsName: "实际控制人",
@@ -77,7 +77,7 @@ export const nodes0 = {
       targetCustType: "Crop",
     },
     {
-      isLeaf: "0",
+      isLeaf: "1",
       linkPathDirection: "II",
       relationClsGrp: "4",
       relationClsName: "实际控制人",
@@ -92,7 +92,7 @@ export const nodes0 = {
 export const nodes1 = {
   1: [
     {
-      isLeaf: "0",
+      isLeaf: "1",
       linkPathDirection: "I",
       relationClsGrp: "2",
       relationClsName: "对外投资",
@@ -102,7 +102,7 @@ export const nodes1 = {
       targetCustType: "Crop",
     },
     {
-      isLeaf: "0",
+      isLeaf: "1",
       linkPathDirection: "I",
       relationClsGrp: "2",
       relationClsName: "对外投资",
