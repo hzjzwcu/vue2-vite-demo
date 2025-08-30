@@ -44,7 +44,7 @@ export default {
       const dataset = {
         id: "root",
         parentId: null,
-        label: "root手心集团关系",
+        label: "手心集团关系根节点",
         isPlain: true,
         clickable: false,
         class: "lvl1",
@@ -414,8 +414,17 @@ export default {
           .style("stroke", "#ccc")
           .attr("rx", 3)
           .attr("ry", 3);
-
         this.updateNodeColor(d);
+
+
+        console.log(`${d.data.label} x:${d.x} y:${d.y} x0:${d.x0} y0:${d.y0}`)
+        this.g
+          .append("circle")
+          .attr("class", "node-circle")
+          .attr("fill", "#000000")
+          .attr("r", 3)
+          .attr("cy", d.x)
+          .attr("cx", d.y);
       } catch (err) {
         console.log("drawNode err", err);
       }
@@ -426,25 +435,20 @@ export default {
         if (!s || !t) return "";
 
         const PADDING_LR = 15; // 文本左右内边距
-        const GAP = 12; // 矩形与加号之间的 gap
-        const BTN_R = 8; // 加号圆半径
         const EXTRA = 6; // 额外安全间距
         const MIN_BRANCH = 36; // 最小延伸距离
 
         const nodeW =
           s.nodeWidth ||
           (s.data && s.data.label
-            ? this.getTextWidth(s.data.label) + 2 * PADDING_LR
+            ? this.getTextWidth(s.data.label) + 2 * PADDING_LR + 2
             : 80);
 
         const rectLeftRel = s.y < 0 ? -nodeW : -PADDING_LR;
         const rectRightRel = rectLeftRel + nodeW;
-        const circleCenterRel =
-          s.y < 0 ? -(nodeW + GAP) : nodeW - PADDING_LR + GAP;
         const maxExtent = Math.max(
           Math.abs(rectLeftRel),
-          Math.abs(rectRightRel),
-          Math.abs(circleCenterRel) + BTN_R
+          Math.abs(rectRightRel)
         );
         const branchDist = Math.max(maxExtent + EXTRA, MIN_BRANCH);
 
@@ -644,7 +648,6 @@ export default {
           }
 
           const arrow = d.target._arrow;
-          console.log("arrow", arrow);
           let midX = arrow.y1 + (2 - lines.length) * 0.5 * lineHeight - 2;
           const midY = arrow ? (arrow.x1 + arrow.x2) / 2 : d.target.x;
 

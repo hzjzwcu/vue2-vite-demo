@@ -78,7 +78,7 @@ export const nodes0 = {
     },
     {
       isLeaf: "1",
-      linkPathDirection: "II",
+      linkPathDirection: "I",
       relationClsGrp: "4",
       relationClsName: "实际控制人",
       relationClsNo: "4",
