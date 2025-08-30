@@ -67,7 +67,7 @@ export default {
             class: "lvl2",
             rootCustNo: "",
             isLeaf: "0",
-            linkPathDirection: "I",
+            linkPathDirection: "O",
             relationClsGrp: "1",
             relationClsName: "股东",
             relationClsNo: "1",
