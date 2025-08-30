@@ -270,9 +270,8 @@ export default {
       const nodes = this.root.descendants();
       const links = this.root.links();
 
-      // === 控制左右展开 ===
+      // ==== 控制左右展开 ====
       if (this.root.children) {
-        // 左右分树
         const leftTree = [];
         const rightTree = [];
 
@@ -281,25 +280,39 @@ export default {
           else leftTree.push(child); // 后两个放左边
         });
 
-        // 左树取反居中
+        // 算左右的居中偏移量
         const leftMiddleOffset = (leftTree[0].x + leftTree.at(-1).x) / 2;
+        const rightMiddleOffset = (rightTree[0].x + rightTree.at(-1).x) / 2;
+
+        // === 计算最大深度，决定水平间距 ===
+        const leftDepth =
+          d3.max(leftTree, (node) =>
+            d3.max(node.descendants(), (d) => d.depth)
+          ) || 0;
+        const rightDepth =
+          d3.max(rightTree, (node) =>
+            d3.max(node.descendants(), (d) => d.depth)
+          ) || 0;
+        const maxDepth = Math.max(leftDepth, rightDepth);
+
+        // 可用宽度（比如 400，或者你自己调）
+        const availableWidth = 400;
+        const hGap = availableWidth / (maxDepth || 1);
+
         leftTree.forEach((node) => {
           node.descendants().forEach((d) => {
-            d.y = -d.depth * 180 ; // 左边
+            d.y = -d.depth * hGap; // 左边
             d.x -= leftMiddleOffset;
           });
         });
 
-        // 右树居中
-        const rightMiddleOffset = (rightTree[0].x + rightTree.at(-1).x) / 2;
         rightTree.forEach((node) => {
           node.descendants().forEach((d) => {
-            d.y = d.depth * 180; // 右边
+            d.y = d.depth * hGap; // 右边
             d.x -= rightMiddleOffset;
           });
         });
       }
-
       // ==== 节点处理 ====
       const node = this.g
         .selectAll("g.gNode")
@@ -326,6 +339,9 @@ export default {
 
       node
         .merge(nodeEnter)
+        .each((d) => {
+          this.drawCircle(d);
+        })
         .transition()
         .duration(this.duration)
         .attr("transform", (d) => `translate(${d.y},${d.x})`);
@@ -466,110 +482,109 @@ export default {
       return res;
     },
     // 绘制节点
+    // 替换 drawNode
     drawNode(d) {
       try {
-        const { id, isExpandButton, clickable, isPlain } = d;
-        const nodeClass = isExpandButton ? "expand-block" : "node-block";
-        const hoverClass = clickable ? "hover" : "not-allow";
-        // 获取文本内容计算宽高
+        const { id, isPlain } = d;
         const g = d3.select(`#g${id}`);
+
+        // 防止重复渲染（如果你之前已经有重复插入问题）
+        g.selectAll("*").remove();
+
+        // 临时插入文本以测量宽度
+        const paddingTopBottom = 8;
+        const paddingLeftRight = 15;
+
         const text = g
           .append("text")
           .attr("id", `label${id}`)
-          .attr("class", `${hoverClass} ${nodeClass}`)
-          .attr("x", (dt) => 0)
-          .attr("y", (dt) => 5)
+          .attr("x", 0)
+          .attr("y", 5)
           .text((dt) => dt.data.label)
           .style("fill", "#666666");
-        // 文本边界框
+
         const bbox = text.node().getBBox();
-        const paddingTopBottom = 8; // 上下内边距
-        const paddingLeftRight = 15; // 左右内边距
-        let borderWidth = "0px";
-        if (isPlain) {
-          borderWidth = "1px";
-          g.append("path")
-            .attr("id", `borderPath${id}`)
-            .attr("class", `${hoverClass} ${nodeClass}`)
-            .attr("d", (dt) => {
-              const x = bbox.x - paddingLeftRight;
-              const y = bbox.y - paddingTopBottom;
-              const width = 5;
-              const height = bbox.height + 2 * paddingTopBottom;
-              const radius = 3;
-              return `
-              M ${x + radius} ${y}
-              L ${x + width} ${y}
-              L ${x + width} ${y + height}
-              L ${x + radius} ${y + height}
-              Q ${x} ${y + height} ${x} ${y + height - radius}
-              L ${x} ${y + radius}
-              Q ${x} ${y} ${x + radius} ${y}
-              `;
-            })
-            .style("fill", "#ffffff")
-            .style("stroke", "#666666") //节点边框颜
-            .style("stroke-width", 1); //节点边框宽度
-        }
-        //添加矩形框作为节点背景
+        const textWidth = bbox.width;
+        const nodeWidth = textWidth + 2 * paddingLeftRight;
+        const nodeHeight = bbox.height + 2 * paddingTopBottom;
+
+        // 保存宽高，供 drawCircle 使用
+        d.nodeWidth = nodeWidth;
+        d.nodeHeight = nodeHeight;
+
+        // 根据 d.y 的正负决定是左侧（右对齐）还是右侧（左对齐）
+        const rectX = d.y < 0 ? -nodeWidth : -paddingLeftRight;
+        const textX = rectX + paddingLeftRight;
+
+        // 更新文本位置（测量完成后再定位）
+        text.attr("x", textX);
+
+        // 插入背景矩形（在文本之前）
         g.insert("rect", "text")
           .attr("id", `border${id}`)
-          .attr("class", `${nodeClass} ${hoverClass}`)
-          .attr("x", bbox.x - paddingLeftRight)
+          .attr("x", rectX)
           .attr("y", bbox.y - paddingTopBottom)
-          .attr("width", bbox.width + 2 * paddingLeftRight)
-          .attr("height", bbox.height + 2 * paddingTopBottom)
-          .style("fill", "#ffffff") // 节点背景颜色
-          .style("stroke", "#") // 节点边框颜色
-          .style("stroke-width", borderWidth) //节点边框宽度
-          .attr("rx", 3) // 节点圆角
+          .attr("width", nodeWidth)
+          .attr("height", nodeHeight)
+          .style("fill", "#ffffff")
+          .style("stroke", "#") // 如果需要边框可改这个值
+          .attr("rx", 3)
           .attr("ry", 3);
+
+        // 保持你原来的纯文本样式逻辑
         this.updateNodeColor(d);
       } catch (err) {
         console.log("drawNode err", err);
       }
     },
     // 绘制节点旁边的加减号
+    // 替换 drawCircle
     drawCircle(d) {
       try {
-        console.log("d.x", d.x);
-        console.log("d.y", d.y);
         const { id, label, isLeaf } = d.data;
-        if (id === "root" || isLeaf === "1") {
-          return;
-        }
-        const textWidth = this.getTextWidth(label);
+        if (id === "root" || isLeaf === "1") return;
+
+        // 确保有 nodeWidth（如果没有就回退到文本测量）
+        const paddingLeftRight = 15;
+        const gap = 12; // 矩形和圆之间的间距
+        const nodeW =
+          d.nodeWidth || this.getTextWidth(label) + 2 * paddingLeftRight;
+
+        // 清理可能已有的按钮（防止重复）
+        d3.select(`#g${id}`).selectAll(".node-circle").remove();
+
         let gMark = d3
           .select(`#g${id}`)
           .append("g")
           .attr("class", "node-circle hover")
           .attr("stroke", "#ffffff");
-        // 调整按钮坐标
-        let offsetX = 30 + textWidth;
-        if (d.y < 0) {
-          offsetX = -offsetX;
-        }
+
+        // 当 d.y < 0（左侧），我们把按钮放到矩形的更左边（负方向），
+        // 否则放到矩形右边（正方向）
+        const offsetX =
+          d.y < 0 ? -(nodeW + gap) : nodeW - paddingLeftRight + gap;
+
         gMark
           .append("circle")
           .attr("class", "node-circle")
-          .attr("fill", "none")
-          .attr("r", 8)
           .attr("fill", "#4669ec")
+          .attr("r", 8)
           .attr("cx", offsetX);
+
         const padding = 4;
-        // 该加减号的横纵线条路径位置
         gMark
           .append("path")
           .attr("class", "node-circle")
-          .attr("d", `m ${-padding + offsetX} 0 l ${2 * padding} 0`) // 横线
+          .attr("d", `m ${-padding + offsetX} 0 l ${2 * padding} 0`)
           .attr("fill", "#ffffff")
           .attr("stroke", "#ffffff")
-          .attr("stroke-width", 2); //线条宽度
+          .attr("stroke-width", 2);
+
         const strokeWidth = d.children ? 0 : 2;
         gMark
           .append("path")
           .attr("class", "node-circle")
-          .attr("d", `m ${offsetX}-${padding} l 0 ${2 * padding}`) //坚线
+          .attr("d", `m ${offsetX}-${padding} l 0 ${2 * padding}`)
           .attr("stroke-width", strokeWidth)
           .attr("class", "node-circle-vertical")
           .attr("fill", "#ffffff")
@@ -578,19 +593,59 @@ export default {
         console.log("drawcircle err", error);
       }
     },
-    // 绘制斜对角线
-    diagonal({ source, target }) {
+    // 绘制连接线
+    diagonal({ source: s, target: t }) {
       try {
-        let s = source;
-        let d = target;
-        return `
-          M ${s.y} ${s.x}
-          L ${(s.y + d.y) / 2} ${s.x},
-          L ${(s.y + d.y) / 2} ${d.x},
-          ${d.y} ${d.x}
-        `;
-      } catch (error) {
-        console.log("diagonal error", error);
+        if (!s || !t) return "";
+
+        // 与 drawNode 保持一致的常量
+        const PADDING_LR = 15; // 文本左右内边距
+        const GAP = 12; // 矩形与加号之间的 gap
+        const BTN_R = 8; // 加号圆半径
+        const EXTRA = 6; // 额外安全间距，避免压线
+        const MIN_BRANCH = 36; // 最小延伸距离，防止很短时看起来拥挤
+
+        // 如果还没测到 nodeWidth，就尝试用文本测量兜底
+        const nodeW =
+          s.nodeWidth ||
+          (s.data && s.data.label
+            ? this.getTextWidth(s.data.label) + 2 * PADDING_LR
+            : 80);
+
+        // --- 计算相对于 group 原点（s.y）的局部坐标 ---
+        // rect 在 drawNode 的 x 定位逻辑：
+        // 右侧节点 rectX = -PADDING_LR，左侧 rectX = -nodeW
+        const rectLeftRel = s.y < 0 ? -nodeW : -PADDING_LR;
+        const rectRightRel = rectLeftRel + nodeW;
+
+        // circle 在 drawCircle 中的 offset：
+        // 左侧： -(nodeW + GAP)
+        // 右侧： nodeW - PADDING_LR + GAP
+        const circleCenterRel =
+          s.y < 0 ? -(nodeW + GAP) : nodeW - PADDING_LR + GAP;
+
+        // 取三个要素（rect 左/右边、circle + 半径）的最大绝对外延
+        const maxExtent = Math.max(
+          Math.abs(rectLeftRel),
+          Math.abs(rectRightRel),
+          Math.abs(circleCenterRel) + BTN_R
+        );
+
+        // 分支距离：大于最大外延 + 额外间距，且不小于最小值
+        const branchDist = Math.max(maxExtent + EXTRA, MIN_BRANCH);
+
+        // 根据子节点方向（t.y >= 0 为右）决定左右符号，统一以 s.y 为基准
+        const dir = t.y >= 0 ? 1 : -1;
+        const xBranch = s.y + dir * branchDist;
+
+        // 返回「先水平 -> 竖直 -> 再水平」的折线
+        return `M ${s.y},${s.x}
+            H ${xBranch}
+            V ${t.x}
+            H ${t.y}`;
+      } catch (e) {
+        console.error("d1iagonal error", e);
+        return "";
       }
     },
     //计算文字宽度
