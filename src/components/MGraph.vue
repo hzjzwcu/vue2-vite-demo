@@ -621,8 +621,8 @@ export default {
         })
         .remove();
 
-      // ==== 连线文本（移动到折线最后水平段中间） ====
-      const lineHeight = 14;
+      // ==== 连接文本（移动到折线最后水平段中间） ====
+      const lineHeight = 12;
       const maxLineLength = 4;
       const linkText = this.g
         .selectAll("text.link-text")
@@ -644,11 +644,9 @@ export default {
           }
 
           const arrow = d.target._arrow;
-          const midX = arrow
-            ? (arrow.y1 + arrow.y2) / 2
-            : (d.source.y + d.target.y) / 2;
-          const midY = arrow ? arrow.x2 : d.target.x;
-          const totalHeight = (lines.length - 1) * lineHeight;
+          console.log("arrow", arrow);
+          let midX = arrow.y1 + (2 - lines.length) * 0.5 * lineHeight - 2;
+          const midY = arrow ? (arrow.x1 + arrow.x2) / 2 : d.target.x;
 
           textEl
             .selectAll("tspan")
@@ -656,9 +654,9 @@ export default {
             .enter()
             .append("tspan")
             .text((t) => t)
+            .attr("x", midY)
             .attr("y", midX)
-            .attr("x", midY - totalHeight / 2)
-            .attr("dy", (t, i) => (i === 0 ? 0 : lineHeight));
+            .attr("dy", (t, i) => i * lineHeight);
         });
 
       linkText.merge(linkTextEnter).transition().duration(this.duration);
