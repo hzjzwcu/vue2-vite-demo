@@ -405,62 +405,6 @@ export default {
         console.log("drawNode err", err);
       }
     },
-    // 绘制节点旁边的加减号
-    // 替换 drawCircle
-    drawCircle(d) {
-      try {
-        const { id, label, isLeaf } = d.data;
-        if (id === "root" || isLeaf === "1") return;
-
-        // 确保有 nodeWidth（如果没有就回退到文本测量）
-        const paddingLeftRight = 15;
-        const gap = 12; // 矩形和圆之间的间距
-        const nodeW =
-          d.nodeWidth || this.getTextWidth(label) + 2 * paddingLeftRight;
-
-        // 清理可能已有的按钮（防止重复）
-        d3.select(`#g${id}`).selectAll(".node-circle").remove();
-
-        let gMark = d3
-          .select(`#g${id}`)
-          .append("g")
-          .attr("class", "node-circle hover")
-          .attr("stroke", "#ffffff");
-
-        // 当 d.y < 0（左侧），我们把按钮放到矩形的更左边（负方向），
-        // 否则放到矩形右边（正方向）
-        const offsetX =
-          d.y < 0 ? -(nodeW + gap) : nodeW - paddingLeftRight + gap;
-
-        gMark
-          .append("circle")
-          .attr("class", "node-circle")
-          .attr("fill", "#4669ec")
-          .attr("r", 8)
-          .attr("cx", offsetX);
-
-        const padding = 4;
-        gMark
-          .append("path")
-          .attr("class", "node-circle")
-          .attr("d", `m ${-padding + offsetX} 0 l ${2 * padding} 0`)
-          .attr("fill", "#ffffff")
-          .attr("stroke", "#ffffff")
-          .attr("stroke-width", 2);
-
-        const strokeWidth = d.children ? 0 : 2;
-        gMark
-          .append("path")
-          .attr("class", "node-circle")
-          .attr("d", `m ${offsetX}-${padding} l 0 ${2 * padding}`)
-          .attr("stroke-width", strokeWidth)
-          .attr("class", "node-circle-vertical")
-          .attr("fill", "#ffffff")
-          .attr("stroke", "#ffffff");
-      } catch (error) {
-        console.log("drawcircle err", error);
-      }
-    },
     // ==== 绘制连接线（折线 + 箭头） ====
     diagonal({ source: s, target: t }) {
       try {
@@ -519,14 +463,12 @@ export default {
         return "";
       }
     },
-
     // ==== 更新树图 ====
     updateGraph(source) {
       if (!this.root) return;
 
       // 重新布局节点
-      this.tree.nodeSize([40, 370])(this.root);
-
+      this.tree.nodeSize([50, 1570])(this.root);
       const nodes = this.root.descendants();
       const links = this.root.links();
 
@@ -708,6 +650,62 @@ export default {
         d.x0 = d.x;
         d.y0 = d.y;
       });
+    },
+
+    // 绘制节点旁边的加减号
+    drawCircle(d) {
+      try {
+        const { id, label, isLeaf } = d.data;
+        if (id === "root" || isLeaf === "1") return;
+
+        // 确保有 nodeWidth（如果没有就回退到文本测量）
+        const paddingLeftRight = 15;
+        const gap = 12; // 矩形和圆之间的间距
+        const nodeW =
+          d.nodeWidth || this.getTextWidth(label) + 2 * paddingLeftRight;
+
+        // 清理可能已有的按钮（防止重复）
+        d3.select(`#g${id}`).selectAll(".node-circle").remove();
+
+        let gMark = d3
+          .select(`#g${id}`)
+          .append("g")
+          .attr("class", "node-circle hover")
+          .attr("stroke", "#ffffff");
+
+        // 当 d.y < 0（左侧），我们把按钮放到矩形的更左边（负方向），
+        // 否则放到矩形右边（正方向）
+        const offsetX =
+          d.y < 0 ? -(nodeW + gap) : nodeW - paddingLeftRight + gap;
+
+        gMark
+          .append("circle")
+          .attr("class", "node-circle")
+          .attr("fill", "#4669ec")
+          .attr("r", 8)
+          .attr("cx", offsetX);
+
+        const padding = 4;
+        gMark
+          .append("path")
+          .attr("class", "node-circle")
+          .attr("d", `m ${-padding + offsetX} 0 l ${2 * padding} 0`)
+          .attr("fill", "#ffffff")
+          .attr("stroke", "#ffffff")
+          .attr("stroke-width", 2);
+
+        const strokeWidth = d.children ? 0 : 2;
+        gMark
+          .append("path")
+          .attr("class", "node-circle")
+          .attr("d", `m ${offsetX}-${padding} l 0 ${2 * padding}`)
+          .attr("stroke-width", strokeWidth)
+          .attr("class", "node-circle-vertical")
+          .attr("fill", "#ffffff")
+          .attr("stroke", "#ffffff");
+      } catch (error) {
+        console.log("drawcircle err", error);
+      }
     },
 
     //计算文字宽度
