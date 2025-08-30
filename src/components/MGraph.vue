@@ -260,141 +260,6 @@ export default {
       });
       this.updateGraph(this.root);
     },
-    // 绘制节点
-    updateGraph(source) {
-      if (!this.root) return;
-
-      // 重新布局
-      this.tree.nodeSize([40, 370])(this.root);
-
-      const nodes = this.root.descendants();
-      const links = this.root.links();
-
-      // ==== 控制左右展开 ====
-      if (this.root.children) {
-        const leftTree = [];
-        const rightTree = [];
-
-        this.root.children.forEach((child, i) => {
-          if (i < 2) rightTree.push(child); // 前两个放右边
-          else leftTree.push(child); // 后两个放左边
-        });
-
-        // 算左右的居中偏移量
-        const leftMiddleOffset = (leftTree[0].x + leftTree.at(-1).x) / 2;
-        const rightMiddleOffset = (rightTree[0].x + rightTree.at(-1).x) / 2;
-
-        // === 计算最大深度，决定水平间距 ===
-        const leftDepth =
-          d3.max(leftTree, (node) =>
-            d3.max(node.descendants(), (d) => d.depth)
-          ) || 0;
-        const rightDepth =
-          d3.max(rightTree, (node) =>
-            d3.max(node.descendants(), (d) => d.depth)
-          ) || 0;
-        const maxDepth = Math.max(leftDepth, rightDepth);
-
-        // 可用宽度（比如 400，或者你自己调）
-        const availableWidth = 400;
-        const hGap = availableWidth / (maxDepth || 1);
-
-        leftTree.forEach((node) => {
-          node.descendants().forEach((d) => {
-            d.y = -d.depth * hGap; // 左边
-            d.x -= leftMiddleOffset;
-          });
-        });
-
-        rightTree.forEach((node) => {
-          node.descendants().forEach((d) => {
-            d.y = d.depth * hGap; // 右边
-            d.x -= rightMiddleOffset;
-          });
-        });
-      }
-      // ==== 节点处理 ====
-      const node = this.g
-        .selectAll("g.gNode")
-        .data(nodes, (d) => d.id || (d.id = ++this.i));
-
-      const nodeEnter = node
-        .enter()
-        .append("g")
-        .attr("id", (d) => `g${d.data.id}`)
-        .attr("class", "gNode")
-        .attr("transform", () => {
-          const obj = { x: source?.x0 || 0, y: source?.y0 || 0 };
-          return `translate(${obj.y},${obj.x})`;
-        })
-        .on("click", (e, d) => {
-          d.children = d.children ? null : d._children;
-          this.updateGraph(d);
-        });
-
-      nodeEnter.each((d) => {
-        this.drawNode(d);
-        this.drawCircle(d);
-      });
-
-      node
-        .merge(nodeEnter)
-        .each((d) => {
-          this.drawCircle(d);
-        })
-        .transition()
-        .duration(this.duration)
-        .attr("transform", (d) => `translate(${d.y},${d.x})`);
-
-      node
-        .exit()
-        .transition()
-        .duration(this.duration)
-        .attr("transform", () => {
-          const obj = { x: source?.x || 0, y: source?.y || 0 };
-          return `translate(${obj.y},${obj.x})`;
-        })
-        .remove();
-
-      // ==== 连线处理 ====
-      const link = this.g
-        .selectAll("path.gLink")
-        .data(links, (d) => d.target.id);
-
-      const linkEnter = link
-        .enter()
-        .insert("path", "g")
-        .attr("class", "gLink")
-        .attr("d", () => {
-          const obj = { x: source?.x0 || 0, y: source?.y0 || 0 };
-          return this.diagonal({ source: obj, target: obj });
-        })
-        .attr("fill", "none")
-        .attr("stroke", "#ddd")
-        .attr("stroke-width", 1.5);
-
-      link
-        .merge(linkEnter)
-        .transition()
-        .duration(this.duration)
-        .attr("d", this.diagonal);
-
-      link
-        .exit()
-        .transition()
-        .duration(this.duration)
-        .attr("d", () => {
-          const obj = { x: source?.x || 0, y: source?.y || 0 };
-          return this.diagonal({ source: obj, target: obj });
-        })
-        .remove();
-
-      // 保存旧位置
-      nodes.forEach((d) => {
-        d.x0 = d.x;
-        d.y0 = d.y;
-      });
-    },
     // 加减号点击事件
     onCollapse(d) {
       const { id } = d.data;
@@ -596,7 +461,7 @@ export default {
         console.log("drawcircle err", error);
       }
     },
-    // 绘制连接线
+    // ==== 绘制连接线（折线 + 箭头） ====
     diagonal({ source: s, target: t }) {
       try {
         if (!s || !t) return "";
@@ -605,52 +470,246 @@ export default {
         const PADDING_LR = 15; // 文本左右内边距
         const GAP = 12; // 矩形与加号之间的 gap
         const BTN_R = 8; // 加号圆半径
-        const EXTRA = 6; // 额外安全间距，避免压线
-        const MIN_BRANCH = 36; // 最小延伸距离，防止很短时看起来拥挤
+        const EXTRA = 6; // 额外安全间距
+        const MIN_BRANCH = 36; // 最小延伸距离
 
-        // 如果还没测到 nodeWidth，就尝试用文本测量兜底
+        // 如果还没测到 nodeWidth，就兜底
         const nodeW =
           s.nodeWidth ||
           (s.data && s.data.label
             ? this.getTextWidth(s.data.label) + 2 * PADDING_LR
             : 80);
 
-        // --- 计算相对于 group 原点（s.y）的局部坐标 ---
-        // rect 在 drawNode 的 x 定位逻辑：
-        // 右侧节点 rectX = -PADDING_LR，左侧 rectX = -nodeW
+        // --- 计算相对于 group 原点的局部坐标 ---
         const rectLeftRel = s.y < 0 ? -nodeW : -PADDING_LR;
         const rectRightRel = rectLeftRel + nodeW;
-
-        // circle 在 drawCircle 中的 offset：
-        // 左侧： -(nodeW + GAP)
-        // 右侧： nodeW - PADDING_LR + GAP
         const circleCenterRel =
           s.y < 0 ? -(nodeW + GAP) : nodeW - PADDING_LR + GAP;
-
-        // 取三个要素（rect 左/右边、circle + 半径）的最大绝对外延
         const maxExtent = Math.max(
           Math.abs(rectLeftRel),
           Math.abs(rectRightRel),
           Math.abs(circleCenterRel) + BTN_R
         );
-
-        // 分支距离：大于最大外延 + 额外间距，且不小于最小值
         const branchDist = Math.max(maxExtent + EXTRA, MIN_BRANCH);
 
-        // 根据子节点方向（t.y >= 0 为右）决定左右符号，统一以 s.y 为基准
+        // 根据子节点方向决定左右符号
         const dir = t.y >= 0 ? 1 : -1;
         const xBranch = s.y + dir * branchDist;
 
-        // 返回「先水平 -> 竖直 -> 再水平」的折线
-        return `M ${s.y},${s.x}
-            H ${xBranch}
-            V ${t.x}
-            H ${t.y}`;
+        // ---- 折线路径 ----
+        const path = [
+          `M ${s.y},${s.x}`,
+          `H ${xBranch}`,
+          `V ${t.x}`,
+          `H ${t.y}`,
+        ].join(" ");
+
+        // ---- 计算箭头位置（最后一条水平线） ----
+        t._arrow = {
+          x1: xBranch,
+          y1: t.x,
+          x2: t.y,
+          y2: t.x,
+          direction: t.data.linkPathDirection === "I" ? "end" : "start",
+        };
+
+        return path;
       } catch (e) {
-        console.error("d1iagonal error", e);
+        console.error("diagonal error", e);
         return "";
       }
     },
+
+    // ==== 更新树图 ====
+    updateGraph(source) {
+      if (!this.root) return;
+
+      // 重新布局节点
+      this.tree.nodeSize([40, 370])(this.root);
+
+      const nodes = this.root.descendants();
+      const links = this.root.links();
+
+      // ==== 控制左右展开 ====
+      if (this.root.children) {
+        const leftTree = [];
+        const rightTree = [];
+
+        this.root.children.forEach((child, i) => {
+          if (i < 2) rightTree.push(child); // 前两个右边
+          else leftTree.push(child); // 后两个左边
+        });
+
+        const leftMiddleOffset = (leftTree[0].x + leftTree.at(-1).x) / 2;
+        const rightMiddleOffset = (rightTree[0].x + rightTree.at(-1).x) / 2;
+
+        const leftDepth =
+          d3.max(leftTree, (node) =>
+            d3.max(node.descendants(), (d) => d.depth)
+          ) || 0;
+        const rightDepth =
+          d3.max(rightTree, (node) =>
+            d3.max(node.descendants(), (d) => d.depth)
+          ) || 0;
+        const maxDepth = Math.max(leftDepth, rightDepth);
+
+        const availableWidth = 400;
+        const hGap = availableWidth / (maxDepth || 1);
+
+        leftTree.forEach((node) => {
+          node.descendants().forEach((d) => {
+            d.y = -d.depth * hGap;
+            d.x -= leftMiddleOffset;
+          });
+        });
+
+        rightTree.forEach((node) => {
+          node.descendants().forEach((d) => {
+            d.y = d.depth * hGap;
+            d.x -= rightMiddleOffset;
+          });
+        });
+      }
+
+      // ==== 绘制节点 ====
+      const node = this.g
+        .selectAll("g.gNode")
+        .data(nodes, (d) => d.id || (d.id = ++this.i));
+
+      const nodeEnter = node
+        .enter()
+        .append("g")
+        .attr("id", (d) => `g${d.data.id}`)
+        .attr("class", "gNode")
+        .attr("transform", () => {
+          const obj = { x: source?.x0 || 0, y: source?.y0 || 0 };
+          return `translate(${obj.y},${obj.x})`;
+        })
+        .on("click", (e, d) => {
+          d.children = d.children ? null : d._children;
+          this.updateGraph(d);
+        });
+
+      nodeEnter.each((d) => {
+        this.drawNode(d);
+        this.drawCircle(d);
+      });
+
+      node
+        .merge(nodeEnter)
+        .each((d) => {
+          this.drawCircle(d);
+        })
+        .transition()
+        .duration(this.duration)
+        .attr("transform", (d) => `translate(${d.y},${d.x})`);
+
+      node
+        .exit()
+        .transition()
+        .duration(this.duration)
+        .attr("transform", () => {
+          const obj = { x: source?.x || 0, y: source?.y || 0 };
+          return `translate(${obj.y},${obj.x})`;
+        })
+        .remove();
+
+      // ==== 连线处理（箭头 + 文本） ====
+      const link = this.g
+        .selectAll("path.gLink")
+        .data(links, (d) => d.target.id);
+      const linkEnter = link
+        .enter()
+        .insert("path", "g")
+        .attr("class", "gLink")
+        .attr("fill", "none")
+        .attr("stroke", "#ddd")
+        .attr("stroke-width", 1.5)
+        .attr("d", () => {
+          const obj = { x: source?.x0 || 0, y: source?.y0 || 0 };
+          return this.diagonal({ source: obj, target: obj });
+        });
+
+      // 定义箭头 marker（只需一次）
+      if (this.svg.select("defs marker#arrow").empty()) {
+        this.svg
+          .append("defs")
+          .append("marker")
+          .attr("id", "arrow")
+          .attr("viewBox", "0 -5 10 10")
+          .attr("refX", 5)
+          .attr("refY", 0)
+          .attr("markerWidth", 6)
+          .attr("markerHeight", 6)
+          .attr("orient", "auto")
+          .append("path")
+          .attr("d", "M0,-5L10,0L0,5")
+          .attr("fill", "#ddd");
+      }
+
+      link
+        .merge(linkEnter)
+        .transition()
+        .duration(this.duration)
+        .attr("d", (d) => this.diagonal(d))
+        .attr("marker-end", (d) =>
+          d.target._arrow?.direction === "end" ? "url(#arrow)" : null
+        )
+        .attr("marker-start", (d) =>
+          d.target._arrow?.direction === "start" ? "url(#arrow)" : null
+        );
+
+      link
+        .exit()
+        .transition()
+        .duration(this.duration)
+        .attr("d", () => {
+          const obj = { x: source?.x || 0, y: source?.y || 0 };
+          return this.diagonal({ source: obj, target: obj });
+        })
+        .remove();
+
+      // ==== 连线文本处理 ====
+      const linkText = this.g
+        .selectAll("text.link-text")
+        .data(links, (d) => d.target.id);
+      const linkTextEnter = linkText
+        .enter()
+        .append("text")
+        .attr("class", "link-text")
+        .attr("dy", -2)
+        .style("font-size", 12)
+        .style("fill", "#666")
+        .attr("text-anchor", "middle")
+        .text((d) => {
+          if (!d.target.data.relationClsName) return "";
+          const name = d.target.data.relationClsName;
+          if (name.length <= 4) return name;
+          return name.match(/.{1,4}/g).join("\n");
+        });
+
+      linkText
+        .merge(linkTextEnter)
+        .transition()
+        .duration(this.duration)
+        .attr("x", (d) =>
+          d.target._arrow
+            ? (d.target._arrow.x1 + d.target._arrow.x2) / 2
+            : (d.source.y + d.target.y) / 2
+        )
+        .attr("y", (d) =>
+          d.target._arrow ? d.target._arrow.y1 : (d.source.x + d.target.x) / 2
+        );
+
+      linkText.exit().remove();
+
+      // ==== 保存旧位置 ====
+      nodes.forEach((d) => {
+        d.x0 = d.x;
+        d.y0 = d.y;
+      });
+    },
+
     //计算文字宽度
     getTextWidth(text) {
       const canvas = document.createElement("canvas");
