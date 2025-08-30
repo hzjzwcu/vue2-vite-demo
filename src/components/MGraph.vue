@@ -482,23 +482,21 @@ export default {
       return res;
     },
     // 绘制节点
-    // 替换 drawNode
     drawNode(d) {
       try {
         const { id, isPlain } = d;
         const g = d3.select(`#g${id}`);
 
-        // 防止重复渲染（如果你之前已经有重复插入问题）
+        // 防止重复渲染
         g.selectAll("*").remove();
 
-        // 临时插入文本以测量宽度
         const paddingTopBottom = 8;
         const paddingLeftRight = 15;
 
+        // 临时插入文本测量宽度
         const text = g
           .append("text")
           .attr("id", `label${id}`)
-          .attr("x", 0)
           .attr("y", 5)
           .text((dt) => dt.data.label)
           .style("fill", "#666666");
@@ -508,18 +506,24 @@ export default {
         const nodeWidth = textWidth + 2 * paddingLeftRight;
         const nodeHeight = bbox.height + 2 * paddingTopBottom;
 
-        // 保存宽高，供 drawCircle 使用
         d.nodeWidth = nodeWidth;
         d.nodeHeight = nodeHeight;
 
-        // 根据 d.y 的正负决定是左侧（右对齐）还是右侧（左对齐）
-        const rectX = d.y < 0 ? -nodeWidth : -paddingLeftRight;
-        const textX = rectX + paddingLeftRight;
+        let rectX, textX, textAnchor;
+        if (d.data.id === "root") {
+          // root 节点居中
+          rectX = -nodeWidth / 2;
+          textX = 0; // 文本水平居中
+          textAnchor = "middle";
+        } else {
+          // 左右节点保持原逻辑
+          rectX = d.y < 0 ? -nodeWidth : -paddingLeftRight;
+          textX = rectX + paddingLeftRight;
+          textAnchor = "start";
+        }
 
-        // 更新文本位置（测量完成后再定位）
-        text.attr("x", textX);
+        text.attr("x", textX).attr("text-anchor", textAnchor); // root 居中
 
-        // 插入背景矩形（在文本之前）
         g.insert("rect", "text")
           .attr("id", `border${id}`)
           .attr("x", rectX)
@@ -527,11 +531,10 @@ export default {
           .attr("width", nodeWidth)
           .attr("height", nodeHeight)
           .style("fill", "#ffffff")
-          .style("stroke", "#") // 如果需要边框可改这个值
+          .style("stroke", "#") // 如需边框可改
           .attr("rx", 3)
           .attr("ry", 3);
 
-        // 保持你原来的纯文本样式逻辑
         this.updateNodeColor(d);
       } catch (err) {
         console.log("drawNode err", err);
