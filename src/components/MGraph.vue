@@ -44,7 +44,7 @@ export default {
       const dataset = {
         id: "root",
         parentId: null,
-        label: "root",
+        label: "root手心集团关系",
         isPlain: true,
         clickable: false,
         class: "lvl1",
@@ -61,7 +61,7 @@ export default {
           {
             id: "1",
             parentId: "root",
-            label: "股东",
+            label: "股东股东股东股东股东股东股东股东",
             isPlain: true,
             clickable: false,
             class: "lvl2",
@@ -69,7 +69,7 @@ export default {
             isLeaf: "0",
             linkPathDirection: "O",
             relationClsGrp: "1",
-            relationClsName: "股东",
+            relationClsName: "股东股东股东股东股东股股东东",
             relationClsNo: "1",
             targetCustNo: "1",
             targetCustName: "1",
@@ -349,26 +349,36 @@ export default {
     // 绘制节点
     drawNode(d) {
       try {
-        const { id, isPlain } = d;
+        const { id } = d;
         const g = d3.select(`#g${id}`);
-
-        // 防止重复渲染
         g.selectAll("*").remove();
 
         const paddingTopBottom = 8;
         const paddingLeftRight = 15;
+        const maxLineLength = 6; // 超过6个字折行
 
-        // 临时插入文本测量宽度
-        const text = g
+        // 文本折行
+        let lines = [];
+        const label = d.data.label || "";
+        for (let i = 0; i < label.length; i += maxLineLength) {
+          lines.push(label.slice(i, i + maxLineLength));
+        }
+
+        // 临时文本测量
+        const tempText = g
           .append("text")
           .attr("id", `label${id}`)
-          .attr("y", 5)
-          .text((dt) => dt.data.label)
-          .style("fill", "#666666");
+          .style("fill", "#666666")
+          .selectAll("tspan")
+          .data(lines)
+          .enter()
+          .append("tspan")
+          .text((t) => t)
+          .attr("x", 0)
+          .attr("dy", (t, i) => (i === 0 ? 0 : 14)); // 每行间距14px
 
-        const bbox = text.node().getBBox();
-        const textWidth = bbox.width;
-        const nodeWidth = textWidth + 2 * paddingLeftRight;
+        const bbox = tempText.node().parentNode.getBBox();
+        const nodeWidth = bbox.width + 2 * paddingLeftRight;
         const nodeHeight = bbox.height + 2 * paddingTopBottom;
 
         d.nodeWidth = nodeWidth;
@@ -376,27 +386,32 @@ export default {
 
         let rectX, textX, textAnchor;
         if (d.data.id === "root") {
-          // root 节点居中
           rectX = -nodeWidth / 2;
-          textX = 0; // 文本水平居中
+          textX = 0;
           textAnchor = "middle";
         } else {
-          // 左右节点保持原逻辑
           rectX = d.y < 0 ? -nodeWidth : -paddingLeftRight;
           textX = rectX + paddingLeftRight;
           textAnchor = "start";
         }
 
-        text.attr("x", textX).attr("text-anchor", textAnchor); // root 居中
+        // 更新文本位置
+        g.select("text")
+          .attr("x", textX)
+          .attr("text-anchor", textAnchor)
+          .attr("y", -bbox.height / 2 + paddingTopBottom)
+          .selectAll("tspan")
+          .attr("x", textX);
 
+        // 绘制背景矩形
         g.insert("rect", "text")
           .attr("id", `border${id}`)
           .attr("x", rectX)
-          .attr("y", bbox.y - paddingTopBottom)
+          .attr("y", -nodeHeight / 2)
           .attr("width", nodeWidth)
           .attr("height", nodeHeight)
           .style("fill", "#ffffff")
-          .style("stroke", "#") // 如需边框可改
+          .style("stroke", "#ccc")
           .attr("rx", 3)
           .attr("ry", 3);
 
@@ -410,21 +425,18 @@ export default {
       try {
         if (!s || !t) return "";
 
-        // 与 drawNode 保持一致的常量
         const PADDING_LR = 15; // 文本左右内边距
         const GAP = 12; // 矩形与加号之间的 gap
         const BTN_R = 8; // 加号圆半径
         const EXTRA = 6; // 额外安全间距
         const MIN_BRANCH = 36; // 最小延伸距离
 
-        // 如果还没测到 nodeWidth，就兜底
         const nodeW =
           s.nodeWidth ||
           (s.data && s.data.label
             ? this.getTextWidth(s.data.label) + 2 * PADDING_LR
             : 80);
 
-        // --- 计算相对于 group 原点的局部坐标 ---
         const rectLeftRel = s.y < 0 ? -nodeW : -PADDING_LR;
         const rectRightRel = rectLeftRel + nodeW;
         const circleCenterRel =
@@ -436,11 +448,9 @@ export default {
         );
         const branchDist = Math.max(maxExtent + EXTRA, MIN_BRANCH);
 
-        // 根据子节点方向决定左右符号
         const dir = t.y >= 0 ? 1 : -1;
         const xBranch = s.y + dir * branchDist;
 
-        // ---- 折线路径 ----
         const path = [
           `M ${s.y},${s.x}`,
           `H ${xBranch}`,
@@ -448,7 +458,7 @@ export default {
           `H ${t.y}`,
         ].join(" ");
 
-        // ---- 计算箭头位置（最后一条水平线） ----
+        // 保存折线最后一段信息用于文本定位
         t._arrow = {
           x1: xBranch,
           y1: t.x,
@@ -463,27 +473,28 @@ export default {
         return "";
       }
     },
+
     // ==== 更新树图 ====
     updateGraph(source) {
       if (!this.root) return;
+      let leftMiddleOffset = 0;
+      let rightMiddleOffset = 0;
 
-      // 重新布局节点
       this.tree.nodeSize([50, 1570])(this.root);
       const nodes = this.root.descendants();
       const links = this.root.links();
 
-      // ==== 控制左右展开 ====
       if (this.root.children) {
         const leftTree = [];
         const rightTree = [];
 
         this.root.children.forEach((child, i) => {
-          if (i < 2) rightTree.push(child); // 前两个右边
-          else leftTree.push(child); // 后两个左边
+          if (i < 2) rightTree.push(child);
+          else leftTree.push(child);
         });
 
-        const leftMiddleOffset = (leftTree[0].x + leftTree.at(-1).x) / 2;
-        const rightMiddleOffset = (rightTree[0].x + rightTree.at(-1).x) / 2;
+        leftMiddleOffset = (leftTree[0].x + leftTree.at(-1).x) / 2;
+        rightMiddleOffset = (rightTree[0].x + rightTree.at(-1).x) / 2;
 
         const leftDepth =
           d3.max(leftTree, (node) =>
@@ -572,7 +583,6 @@ export default {
           return this.diagonal({ source: obj, target: obj });
         });
 
-      // 定义箭头 marker（只需一次）
       if (this.svg.select("defs marker#arrow").empty()) {
         this.svg
           .append("defs")
@@ -611,38 +621,47 @@ export default {
         })
         .remove();
 
-      // ==== 连线文本处理 ====
+      // ==== 连线文本（移动到折线最后水平段中间） ====
+      const lineHeight = 14;
+      const maxLineLength = 4;
       const linkText = this.g
         .selectAll("text.link-text")
         .data(links, (d) => d.target.id);
+
       const linkTextEnter = linkText
         .enter()
         .append("text")
         .attr("class", "link-text")
-        .attr("dy", -2)
         .style("font-size", 12)
         .style("fill", "#666")
         .attr("text-anchor", "middle")
-        .text((d) => {
-          if (!d.target.data.relationClsName) return "";
-          const name = d.target.data.relationClsName;
-          if (name.length <= 4) return name;
-          return name.match(/.{1,4}/g).join("\n");
+        .each(function (d) {
+          const textEl = d3.select(this);
+          const name = d.target.data.relationClsName || "";
+          const lines = [];
+          for (let i = 0; i < name.length; i += maxLineLength) {
+            lines.push(name.slice(i, i + maxLineLength));
+          }
+
+          const arrow = d.target._arrow;
+          const midX = arrow
+            ? (arrow.y1 + arrow.y2) / 2
+            : (d.source.y + d.target.y) / 2;
+          const midY = arrow ? arrow.x2 : d.target.x;
+          const totalHeight = (lines.length - 1) * lineHeight;
+
+          textEl
+            .selectAll("tspan")
+            .data(lines)
+            .enter()
+            .append("tspan")
+            .text((t) => t)
+            .attr("y", midX)
+            .attr("x", midY - totalHeight / 2)
+            .attr("dy", (t, i) => (i === 0 ? 0 : lineHeight));
         });
 
-      linkText
-        .merge(linkTextEnter)
-        .transition()
-        .duration(this.duration)
-        .attr("x", (d) =>
-          d.target._arrow
-            ? (d.target._arrow.x1 + d.target._arrow.x2) / 2
-            : (d.source.y + d.target.y) / 2
-        )
-        .attr("y", (d) =>
-          d.target._arrow ? d.target._arrow.y1 : (d.source.x + d.target.x) / 2
-        );
-
+      linkText.merge(linkTextEnter).transition().duration(this.duration);
       linkText.exit().remove();
 
       // ==== 保存旧位置 ====
@@ -651,7 +670,6 @@ export default {
         d.y0 = d.y;
       });
     },
-
     // 绘制节点旁边的加减号
     drawCircle(d) {
       try {
