@@ -510,7 +510,7 @@ export default {
           y1: t.x,
           x2: t.y,
           y2: t.x,
-          direction: t.data.linkPathDirection === "I" ? "end" : "start",
+          direction: t.data?.linkPathDirection === "I" ? "end" : "start",
         };
 
         return path;
