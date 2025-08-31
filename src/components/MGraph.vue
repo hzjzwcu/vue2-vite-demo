@@ -583,7 +583,7 @@ export default {
           .append("marker")
           .attr("id", "arrow")
           .attr("viewBox", "0 -5 10 10")
-          .attr("refX", 8)
+          .attr("refX", 10)
           .attr("refY", 0)
           .attr("markerWidth", 6)
           .attr("markerHeight", 6)
@@ -593,25 +593,49 @@ export default {
           .attr("fill", "#ddd");
       }
 
+      if (this.svg.select("defs marker#arrowStart").empty()) {
+        this.svg
+          .append("defs")
+          .append("marker")
+          .attr("id", "arrowStart")
+          .attr("viewBox", "0 -5 10 10")
+          .attr("refX", 10)
+          .attr("refY", 0)
+          .attr("markerWidth", 8)
+          .attr("markerHeight", 8)
+          .attr("orient", "auto")
+          .append("path")
+          .attr("d", "M0,-5L10,0L0,5")
+          .attr("fill", "#ddd");
+      }
       link
         .merge(linkEnter)
         .transition()
         .duration(this.duration)
-        .attr("d", (d) => {
-          return this.diagonal(d);
-        })
-        .attr("marker-end", (d) =>
-          d.target._arrow?.direction === "end" ? "url(#arrow)" : null
-        )
-        .attr("marker-start", (d) =>
-          d.target._arrow?.direction === "start" ? "url(#arrow)" : null
-        );
+        .attr("d", d => this.diagonal(d)) // 原路径
+        .attr("marker-end", d => d.target._arrow?.direction === "end" ? "url(#arrow)" : null)
+        .attr("marker-start", null); // 不直接在路径上画 start
+
+      // 如果需要 start 箭头
+      linkEnter.each(function (d) {
+        if (d.target._arrow?.direction === "start") {
+          const { x1, y1 } = d.target._arrow;
+
+          d3.select(this.parentNode)
+            .append("path")
+            .attr("class", "start-arrow")
+            .attr("d", `M ${x1},${y1} L ${x1} ${y1}`)
+            .attr("stroke", "transparent")
+            .attr("marker-end", "url(#arrowStart)");
+        }
+      });
 
       link
         .exit()
         .transition()
         .duration(this.duration)
         .attr("d", () => {
+          d3.selectAll(".start-arrow").remove();
           const obj = { x: source?.x || 0, y: source?.y || 0 };
           return this.diagonal({ source: obj, target: obj });
         })
