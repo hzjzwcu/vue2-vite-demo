@@ -762,6 +762,11 @@ export default {
   width: 100%;
   height: 800px;
 }
+
+.node {
+  cursor: default;
+}
+
 .clickable {
   cursor: pointer;
 }
