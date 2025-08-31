@@ -277,9 +277,7 @@ export default {
         .duration(this.duration)
         .attr("stroke", "#ffffff")
         .attr("stroke-width", strokeWidth);
-      this.root.descendants().forEach((node) => {
-        this.updateGraph(node); // 更新节点
-      });
+      this.updateGraph(d);
     },
     // 展开更多按钮点击事件
     onClickExpand(d) {
@@ -420,7 +418,7 @@ export default {
           .attr("class", 'node');
         this.updateNodeColor(d);
       } catch (err) {
-        console.log("drawNode err", err);
+        console.error("drawNode err", err);
       }
     },
     // ==== 绘制连接线（折线 + 箭头） ====
@@ -456,14 +454,6 @@ export default {
           `H ${t.y}`,
         ].join(" ");
 
-
-        // 保存折线最后一段信息用于文本定位      
-        if (t.data?.label === '22') {
-          // console.log(`折线 path:${path}`)
-          // console.log(`折线 t.x${t.x} t.y:${t.y} xBranch:${xBranch}`)
-          // console.log(`折线 x1${xBranch} y1:${t.x} x2:${t.y} y2:${t.x}`)
-        }
-
         t._arrow = {
           x1: xBranch,
           y1: t.x,
@@ -481,15 +471,11 @@ export default {
 
     // ==== 更新树图 ====
     updateGraph(source) {
-      // console.log('source', source);
-      if (source.data.label === '31') {
-        console.log('绘制连接线文本1', source.data?.relationClsName)
-      }
       if (!this.root) return;
       let leftMiddleOffset = 0;
       let rightMiddleOffset = 0;
 
-      this.tree.nodeSize([50, 370])(this.root);
+      this.tree.nodeSize([80, 370])(this.root);
       const nodes = this.root.descendants();
       const links = this.root.links();
 
@@ -549,9 +535,6 @@ export default {
         })
         .on("click", (event, d) => {
           const classList = [...event?.target?.classList];
-          console.log('=======')
-          console.log('classList', classList)
-          console.log('=======')
           if (classList.includes('collapse')) {
             return this.onCollapse(d); // 加减号点击事件
           }
@@ -582,7 +565,7 @@ export default {
         .transition()
         .duration(this.duration)
         .attr("transform", () => {
-          const obj = { x: source?.x || 0, y: source?.y || 0 };
+          const obj = { x: source?.x0 || 0, y: source?.y0 || 0 };
           return `translate(${obj.y},${obj.x})`;
         })
         .attr('fill-opacity', 0)
@@ -601,6 +584,7 @@ export default {
         .attr("stroke", "#ddd")
         .attr("stroke-width", 1.5)
         .attr("d", () => {
+
           const obj = { x: source?.x0 || 0, y: source?.y0 || 0 };
           return this.diagonal({ source: obj, target: obj });
         });
@@ -625,7 +609,9 @@ export default {
         .merge(linkEnter)
         .transition()
         .duration(this.duration)
-        .attr("d", (d) => this.diagonal(d))
+        .attr("d", (d) => {
+          return this.diagonal(d);
+        })
         .attr("marker-end", (d) =>
           d.target._arrow?.direction === "end" ? "url(#arrow)" : null
         )
@@ -657,10 +643,6 @@ export default {
         .style("fill", "#666")
         .attr("text-anchor", "middle")
         .each(function (d) {
-          console.log('d.target.data?.relationClsName', d.target.data?.relationClsName)
-          if (d.target.data.label === '31') {
-            console.log('绘制连接线文本', d.target.data?.relationClsName)
-          }
           const textEl = d3.select(this);
           const name = d.target.data.relationClsName || "";
           const lines = [];
@@ -699,7 +681,6 @@ export default {
           const arrow = d.target._arrow;
           let midX = arrow.y1 + (2 - lines.length) * 0.5 * 12 - 2;
           const midY = (arrow.x1 + arrow.x2) / 2;
-
           textEl
             .selectAll("tspan")
             .data(lines)
@@ -773,7 +754,7 @@ export default {
           .attr("fill", "#ffffff")
           .attr("stroke", "#ffffff");
       } catch (error) {
-        console.log("drawcircle err", error);
+        console.error("drawcircle err", error);
       }
     },
 
