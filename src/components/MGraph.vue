@@ -226,7 +226,7 @@ export default {
       this.dealData();
     },
     // 使用d3转换数据结构
-    dealData(nodes) {
+    dealData() {
       this.root = d3.hierarchy(this.dataset); // 转换数据
       // 开始布局
       if (this.tree && this.root) {
@@ -277,7 +277,9 @@ export default {
         .duration(this.duration)
         .attr("stroke", "#ffffff")
         .attr("stroke-width", strokeWidth);
-      this.updateGraph(d); // 更新节点
+      this.root.descendants().forEach((node) => {
+        this.updateGraph(node); // 更新节点
+      });
     },
     // 展开更多按钮点击事件
     onClickExpand(d) {
@@ -390,7 +392,7 @@ export default {
           textX = 0;
           textAnchor = "middle";
         } else {
-          rectX = d.y < 0 ? -nodeWidth : -paddingLeftRight;
+          rectX = d.y < 0 ? -nodeWidth : 0;
           textX = rectX + paddingLeftRight;
           textAnchor = "start";
         }
@@ -401,7 +403,8 @@ export default {
           .attr("text-anchor", textAnchor)
           .attr("y", -bbox.height / 2 + paddingTopBottom)
           .selectAll("tspan")
-          .attr("x", textX);
+          .attr("x", textX)
+          .attr("class", 'node');
 
         // 绘制背景矩形
         g.insert("rect", "text")
@@ -413,18 +416,9 @@ export default {
           .style("fill", "#ffffff")
           .style("stroke", "#ccc")
           .attr("rx", 3)
-          .attr("ry", 3);
+          .attr("ry", 3)
+          .attr("class", 'node');
         this.updateNodeColor(d);
-
-
-        console.log(`${d.data.label} x:${d.x} y:${d.y} x0:${d.x0} y0:${d.y0}`)
-        this.g
-          .append("circle")
-          .attr("class", "node-circle")
-          .attr("fill", "#000000")
-          .attr("r", 3)
-          .attr("cy", d.x)
-          .attr("cx", d.y);
       } catch (err) {
         console.log("drawNode err", err);
       }
@@ -444,7 +438,7 @@ export default {
             ? this.getTextWidth(s.data.label) + 2 * PADDING_LR + 2
             : 80);
 
-        const rectLeftRel = s.y < 0 ? -nodeW : -PADDING_LR;
+        const rectLeftRel = s.y < 0 ? -nodeW - 20 : 20;
         const rectRightRel = rectLeftRel + nodeW;
         const maxExtent = Math.max(
           Math.abs(rectLeftRel),
@@ -462,7 +456,14 @@ export default {
           `H ${t.y}`,
         ].join(" ");
 
-        // 保存折线最后一段信息用于文本定位
+
+        // 保存折线最后一段信息用于文本定位      
+        if (t.data?.label === '22') {
+          // console.log(`折线 path:${path}`)
+          // console.log(`折线 t.x${t.x} t.y:${t.y} xBranch:${xBranch}`)
+          // console.log(`折线 x1${xBranch} y1:${t.x} x2:${t.y} y2:${t.x}`)
+        }
+
         t._arrow = {
           x1: xBranch,
           y1: t.x,
@@ -480,11 +481,15 @@ export default {
 
     // ==== 更新树图 ====
     updateGraph(source) {
+      // console.log('source', source);
+      if (source.data.label === '31') {
+        console.log('绘制连接线文本1', source.data?.relationClsName)
+      }
       if (!this.root) return;
       let leftMiddleOffset = 0;
       let rightMiddleOffset = 0;
 
-      this.tree.nodeSize([50, 1570])(this.root);
+      this.tree.nodeSize([50, 370])(this.root);
       const nodes = this.root.descendants();
       const links = this.root.links();
 
@@ -510,7 +515,7 @@ export default {
           ) || 0;
         const maxDepth = Math.max(leftDepth, rightDepth);
 
-        const availableWidth = 400;
+        const availableWidth = 470;
         const hGap = availableWidth / (maxDepth || 1);
 
         leftTree.forEach((node) => {
@@ -536,15 +541,26 @@ export default {
       const nodeEnter = node
         .enter()
         .append("g")
-        .attr("id", (d) => `g${d.data.id}`)
+        .attr("id", (d) => `g${d.id}`)
         .attr("class", "gNode")
         .attr("transform", () => {
           const obj = { x: source?.x0 || 0, y: source?.y0 || 0 };
           return `translate(${obj.y},${obj.x})`;
         })
-        .on("click", (e, d) => {
-          d.children = d.children ? null : d._children;
-          this.updateGraph(d);
+        .on("click", (event, d) => {
+          const classList = [...event?.target?.classList];
+          console.log('=======')
+          console.log('classList', classList)
+          console.log('=======')
+          if (classList.includes('collapse')) {
+            return this.onCollapse(d); // 加减号点击事件
+          }
+          if (classList.includes('node')) {
+            return this.onClickNode(d); // 普通节点点击事件
+          }
+          if (classList.includes('expand')) {
+            return this.onClickExpand(d); // 展开按钮点击事件
+          }
         });
 
       nodeEnter.each((d) => {
@@ -569,6 +585,8 @@ export default {
           const obj = { x: source?.x || 0, y: source?.y || 0 };
           return `translate(${obj.y},${obj.x})`;
         })
+        .attr('fill-opacity', 0)
+        .attr('stroke-opacity', 0)
         .remove();
 
       // ==== 连线处理（箭头 + 文本） ====
@@ -593,7 +611,7 @@ export default {
           .append("marker")
           .attr("id", "arrow")
           .attr("viewBox", "0 -5 10 10")
-          .attr("refX", 5)
+          .attr("refX", 8)
           .attr("refY", 0)
           .attr("markerWidth", 6)
           .attr("markerHeight", 6)
@@ -625,13 +643,12 @@ export default {
         })
         .remove();
 
-      // ==== 连接文本（移动到折线最后水平段中间） ====
+      // ==== 连接线文本（移动到折线最后水平段中间） ====
       const lineHeight = 12;
       const maxLineLength = 4;
       const linkText = this.g
         .selectAll("text.link-text")
         .data(links, (d) => d.target.id);
-
       const linkTextEnter = linkText
         .enter()
         .append("text")
@@ -640,6 +657,10 @@ export default {
         .style("fill", "#666")
         .attr("text-anchor", "middle")
         .each(function (d) {
+          console.log('d.target.data?.relationClsName', d.target.data?.relationClsName)
+          if (d.target.data.label === '31') {
+            console.log('绘制连接线文本', d.target.data?.relationClsName)
+          }
           const textEl = d3.select(this);
           const name = d.target.data.relationClsName || "";
           const lines = [];
@@ -662,7 +683,36 @@ export default {
             .attr("dy", (t, i) => i * lineHeight);
         });
 
-      linkText.merge(linkTextEnter).transition().duration(this.duration);
+      linkText
+        .merge(linkTextEnter)
+        .attr("text-anchor", "middle")
+        .each(function (d) {
+          const textEl = d3.select(this);
+          textEl.selectAll("tspan").remove(); // 先清掉旧的
+
+          const name = d.target.data.relationClsName || "";
+          const lines = [];
+          for (let i = 0; i < name.length; i += 4) {
+            lines.push(name.slice(i, i + 4));
+          }
+
+          const arrow = d.target._arrow;
+          let midX = arrow.y1 + (2 - lines.length) * 0.5 * 12 - 2;
+          const midY = (arrow.x1 + arrow.x2) / 2;
+
+          textEl
+            .selectAll("tspan")
+            .data(lines)
+            .enter()
+            .append("tspan")
+            .text((t) => t)
+            .attr("x", midY)
+            .attr("y", midX)
+            .attr("dy", (t, i) => i * 12);
+        })
+        .transition()
+        .duration(this.duration);
+
       linkText.exit().remove();
 
       // ==== 保存旧位置 ====
@@ -671,7 +721,7 @@ export default {
         d.y0 = d.y;
       });
     },
-    // 绘制节点旁边的加减号
+    // 绘制节点旁边的加减号圆圈
     drawCircle(d) {
       try {
         const { id, label, isLeaf } = d.data;
@@ -695,11 +745,11 @@ export default {
         // 当 d.y < 0（左侧），我们把按钮放到矩形的更左边（负方向），
         // 否则放到矩形右边（正方向）
         const offsetX =
-          d.y < 0 ? -(nodeW + gap) : nodeW - paddingLeftRight + gap;
+          d.y < 0 ? -(nodeW + gap) : nodeW + gap;
 
         gMark
           .append("circle")
-          .attr("class", "node-circle")
+          .attr("class", "node-circle collapse")
           .attr("fill", "#4669ec")
           .attr("r", 8)
           .attr("cx", offsetX);
@@ -707,7 +757,7 @@ export default {
         const padding = 4;
         gMark
           .append("path")
-          .attr("class", "node-circle")
+          .attr("class", "node-circle collapse")
           .attr("d", `m ${-padding + offsetX} 0 l ${2 * padding} 0`)
           .attr("fill", "#ffffff")
           .attr("stroke", "#ffffff")
@@ -719,7 +769,7 @@ export default {
           .attr("class", "node-circle")
           .attr("d", `m ${offsetX}-${padding} l 0 ${2 * padding}`)
           .attr("stroke-width", strokeWidth)
-          .attr("class", "node-circle-vertical")
+          .attr("class", "node-circle-vertical collapse")
           .attr("fill", "#ffffff")
           .attr("stroke", "#ffffff");
       } catch (error) {
