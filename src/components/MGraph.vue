@@ -490,19 +490,7 @@ export default {
 
         leftMiddleOffset = (leftTree[0].x + leftTree.at(-1).x) / 2;
         rightMiddleOffset = (rightTree[0].x + rightTree.at(-1).x) / 2;
-
-        const leftDepth =
-          d3.max(leftTree, (node) =>
-            d3.max(node.descendants(), (d) => d.depth)
-          ) || 0;
-        const rightDepth =
-          d3.max(rightTree, (node) =>
-            d3.max(node.descendants(), (d) => d.depth)
-          ) || 0;
-        const maxDepth = Math.max(leftDepth, rightDepth);
-
-        const availableWidth = 470;
-        const hGap = availableWidth / (maxDepth || 1);
+        const hGap = 230; // 节点间距
 
         leftTree.forEach((node) => {
           node.descendants().forEach((d) => {
