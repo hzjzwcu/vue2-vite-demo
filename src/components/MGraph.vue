@@ -402,7 +402,7 @@ export default {
           .attr("y", -bbox.height / 2 + paddingTopBottom)
           .selectAll("tspan")
           .attr("x", textX)
-          .attr("class", 'node');
+          .attr("class", `node ${d.data.clickable ? 'clickable' : ''}`);
 
         // 绘制背景矩形
         g.insert("rect", "text")
@@ -415,7 +415,7 @@ export default {
           .style("stroke", "#ccc")
           .attr("rx", 3)
           .attr("ry", 3)
-          .attr("class", 'node');
+          .attr("class", `node ${d.data.clickable ? 'clickable' : ''}`);
         this.updateNodeColor(d);
       } catch (err) {
         console.error("drawNode err", err);
@@ -708,7 +708,7 @@ export default {
         let gMark = d3
           .select(`#g${id}`)
           .append("g")
-          .attr("class", "node-circle hover")
+          .attr("class", "node-circle clickable")
           .attr("stroke", "#ffffff");
 
         // 当 d.y < 0（左侧），我们把按钮放到矩形的更左边（负方向），
@@ -761,5 +761,8 @@ export default {
 .tree-chart {
   width: 100%;
   height: 800px;
+}
+.clickable {
+  cursor: pointer;
 }
 </style>
