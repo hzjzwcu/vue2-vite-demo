@@ -29,6 +29,8 @@
         v-model="selection"
         :data="filteredTreeData"
         :props="treeProps"
+        :linked="linked"
+        class="select-tree-content"
       />
     </template>
   </el-select>
@@ -58,6 +60,11 @@ export default {
         label: 'instAttrName',
         children: 'children',
       }),
+    },
+    // 从父组件接收 a 'linked' prop
+    linked: {
+      type: Boolean,
+      default: true,
     },
   },
   data() {
@@ -240,10 +247,14 @@ export default {
   overflow: hidden !important; /* 强制禁用外层滚动条，这是解决双滚动条问题的关键 */
 }
 
-/* 2. 让作为容器的 empty 插槽占满整个下拉框的高度 */
+/* 2. 让作为容器的 empty 插槽适应其内容，并移除其自身可能带来的滚动问题 */
 .select-tree-popper .el-select-dropdown__empty {
-  height: 500px;
   padding: 0;
-  overflow: hidden; /* 自身也不滚动 */
+  /* 移除 height 和 overflow, 让其包裹内容 */
+}
+
+/* 3. 为 virtual-tree 组件本身设置固定高度，使其内部滚动 */
+.select-tree-popper .select-tree-content {
+  height: 500px;
 }
 </style>

@@ -54,6 +54,11 @@ export default {
         children: 'children',
       }),
     },
+    // 新增：控制是否父子联动
+    linked: {
+      type: Boolean,
+      default: true,
+    },
   },
   data() {
     return {
@@ -97,6 +102,13 @@ export default {
     // “全选”复选框是否处于半选状态
     isIndeterminate() {
       if (!this.flattenedNodes.length) return false;
+      // 在非关联模式下，半选状态没有意义，可以直接返回 false
+      if (!this.linked) {
+        if (this.internalSelection.size === 0 || this.internalSelection.size === this.flattenedNodes.length) {
+          return false;
+        }
+        return true;
+      }
       return (
         this.internalSelection.size > 0 &&
         this.internalSelection.size < this.flattenedNodes.length
@@ -187,37 +199,49 @@ export default {
     handleCheckChange(node, checked) {
       const newSelection = new Set(this.internalSelection);
 
-      // 1. 更新自身和所有后代节点
-      const nodesToUpdate = [node, ...this.getDescendants(node)];
-      nodesToUpdate.forEach(n => {
+      if (this.linked) {
+        // --- 关联模式 ---
+        // 1. 更新自身和所有后代节点
+        const nodesToUpdate = [node, ...this.getDescendants(node)];
+        nodesToUpdate.forEach(n => {
+          if (checked) {
+            newSelection.add(n.nodeId);
+          } else {
+            newSelection.delete(n.nodeId);
+          }
+        });
+
+        // 2. 向上更新所有祖先节点的状态
+        let parent = node.parent;
+        while (parent) {
+          // 找到所有兄弟节点
+          const children = this.flattenedNodes.filter(
+            n => n.parent && n.parent.nodeId === parent.nodeId
+          );
+          // 判断是否所有兄弟节点都被选中
+          const allChildrenSelected = children.every(child =>
+            newSelection.has(child.nodeId)
+          );
+
+          if (allChildrenSelected) {
+            // 如果所有兄弟都选中了，则父节点也应被选中
+            newSelection.add(parent.nodeId);
+          } else {
+            // 否则，父节点不应被选中
+            newSelection.delete(parent.nodeId);
+          }
+          parent = parent.parent;
+        }
+      } else {
+        // --- 非关联模式 ---
+        // 只更新当前点击的节点
         if (checked) {
-          newSelection.add(n.nodeId);
+          newSelection.add(node.nodeId);
         } else {
-          newSelection.delete(n.nodeId);
+          newSelection.delete(node.nodeId);
         }
-      });
-
-      // 2. 向上更新所有祖先节点的状态
-      let parent = node.parent;
-      while (parent) {
-        // 找到所有兄弟节点
-        const children = this.flattenedNodes.filter(
-          n => n.parent && n.parent.nodeId === parent.nodeId
-        );
-        // 判断是否所有兄弟节点都被选中
-        const allChildrenSelected = children.every(child =>
-          newSelection.has(child.nodeId)
-        );
-
-        if (allChildrenSelected) {
-          // 如果所有兄弟都选中了，则父节点也应被选中
-          newSelection.add(parent.nodeId);
-        } else {
-          // 否则，父节点不应被选中
-          newSelection.delete(parent.nodeId);
-        }
-        parent = parent.parent;
       }
+      
       // 触发 v-model 更新
       this.internalSelection = newSelection;
     },
@@ -284,7 +308,8 @@ export default {
 
       // 根据标记设置每个节点的展开状态
       this.flattenedNodes.forEach(node => {
-          node.expanded = nodesToExpand.has(node);
+          // 在非关联模式下，总是展开所有节点
+          node.expanded = !this.linked || nodesToExpand.has(node);
       });
 
       // 更新可见节点列表
