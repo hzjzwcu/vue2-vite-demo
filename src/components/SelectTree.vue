@@ -16,35 +16,33 @@
     <!-- 
       这个组件的核心实现方式：
       1. el-select 的 value 绑定的是一个标签字符串数组，这样 el-select 就能直接显示标签。
-      2. 下拉框的内容被一个单独的、不含任何内容的 el-option 包裹。
-      3. 真正的树组件 <virtual-tree> 被放在这个 el-option 中。
+      2. 下拉框的内容现在被放置在 el-select 的 empty 插槽中。
+      3. 真正的树组件 <virtual-tree> 被放在这个 empty 插槽中。
       4. 通过 CSS 修改 el-select 的下拉框样式，使其高度固定，并禁用其自身的滚动条，
          让内部的 virtual-tree 的滚动条成为唯一的滚动条。
     -->
 
-    <!-- 一个单独的 el-option，作为 virtual-tree 组件的容器 -->
-    <el-option value="" class="tree-option-item">
+    <!-- 使用 empty 插槽作为 virtual-tree 组件的容器 -->
+    <template #empty>
       <virtual-tree
         ref="virtualTree"
         v-model="selection"
         :data="filteredTreeData"
         :props="treeProps"
       />
-    </el-option>
+    </template>
   </el-select>
 </template>
 
 <script>
 import VirtualTree from './VirtualTree.vue';
 import ElSelect from 'element-ui/lib/select';
-import ElOption from 'element-ui/lib/option';
 
 export default {
   name: 'SelectTree',
   components: {
     VirtualTree,
     ElSelect,
-    ElOption,
   },
   props: {
     // 原始树形数据
@@ -242,19 +240,10 @@ export default {
   overflow: hidden !important; /* 强制禁用外层滚动条，这是解决双滚动条问题的关键 */
 }
 
-/* 2. 让作为容器的 el-option 占满整个下拉框的高度 */
-.tree-option-item {
+/* 2. 让作为容器的 empty 插槽占满整个下拉框的高度 */
+.select-tree-popper .el-select-dropdown__empty {
   height: 500px;
   padding: 0;
   overflow: hidden; /* 自身也不滚动 */
-  background-color: #fff !important; /* 覆盖 el-option 的 hover 效果 */
-}
-.tree-option-item.hover {
-  background-color: #fff;
-}
-
-/* 3. 当搜索时，el-select 会为这个容器 option 添加 .filtered 类，此时应将其隐藏，避免干扰 */
-.el-select-dropdown__list .tree-option-item.filtered {
-    display: none;
 }
 </style>
