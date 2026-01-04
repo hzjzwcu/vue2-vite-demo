@@ -24,14 +24,22 @@
 
     <!-- 使用 empty 插槽作为 virtual-tree 组件的容器 -->
     <template #empty>
-      <virtual-tree
-        ref="virtualTree"
-        v-model="selection"
-        :data="filteredTreeData"
-        :props="treeProps"
-        :linked="linked"
-        class="select-tree-content"
-      />
+      <div
+        v-loading="isLoading"
+        element-loading-text="正在计算节点状态..."
+        element-loading-spinner="el-icon-loading"
+        element-loading-background="rgba(255, 255, 255, 0.8)"
+        class="loading-container"
+      >
+        <virtual-tree
+          ref="virtualTree"
+          v-model="selection"
+          :data="filteredTreeData"
+          :props="treeProps"
+          :linked="linked"
+          class="select-tree-content"
+        />
+      </div>
     </template>
   </el-select>
 </template>
@@ -77,6 +85,8 @@ export default {
       idToNodeMap: {},
       // 用于判断下拉框是否可见的状态
       dropdownVisible: false,
+      // 新增：用于控制加载状态
+      isLoading: false,
     };
   },
   computed: {
@@ -206,29 +216,37 @@ export default {
       this.selection = new Set();
     },
     /**
-     * @description 当下拉框的可见性改变时触发
+     * @description 当下拉框的可见性改变时触发 (异步加载版本)
      * @param {boolean} isVisible - 下拉框是否可见
      */
     handleVisibleChange(isVisible) {
       this.dropdownVisible = isVisible;
       if (isVisible) {
-        // 使用 $nextTick 确保 DOM 更新完毕
-        this.$nextTick(() => {
-          if (this.$refs.virtualTree) {
-            // 1. 折叠所有节点，并展开选中节点的路径。此方法内部会重置列表。
-            this.$refs.virtualTree.collapseAllAndExpandSelected();
+        this.isLoading = true;
+        // 使用 setTimeout 将繁重计算推迟到下一个事件循环
+        // 这让 Vue 有时间更新 DOM 并显示 loading 指示器
+        setTimeout(() => {
+          this.$nextTick(() => { // 确保 virtualTree ref 可用
+            if (this.$refs.virtualTree) {
+              // 1. 同步执行展开/折叠操作
+              this.$refs.virtualTree.collapseAllAndExpandSelected();
 
-            // 2. 在下一个 tick 中执行滚动，确保列表已根据新的展开状态重新渲染
-            this.$nextTick(() => {
-              if (this.selection.size > 0 && this.selectedIds) {
-                const firstSelectedId = this.selectedIds[0];
-                if (this.$refs.virtualTree && firstSelectedId) {
-                  this.$refs.virtualTree.scrollToNode(firstSelectedId);
+              // 2. 滚动到第一个选中项
+              this.$nextTick(() => {
+                if (this.selection.size > 0) {
+                    const firstSelectedId = this.selectedIds[0];
+                    if (firstSelectedId) {
+                        this.$refs.virtualTree.scrollToNode(firstSelectedId);
+                    }
                 }
-              }
-            });
-          }
-        });
+                // 3. 所有操作完成后，隐藏 loading
+                this.isLoading = false;
+              });
+            } else {
+              this.isLoading = false; // 以防万一 ref 不存在
+            }
+          });
+        }, 50); // 50ms的延迟比0更可靠，能确保渲染线程优先执行
       } else {
         // 当下拉框关闭时，重置搜索查询
         this.searchQuery = '';
@@ -250,11 +268,17 @@ export default {
 /* 2. 让作为容器的 empty 插槽适应其内容，并移除其自身可能带来的滚动问题 */
 .select-tree-popper .el-select-dropdown__empty {
   padding: 0;
+  height: 100%; /* 让 empty 插槽填充可用高度 */
   /* 移除 height 和 overflow, 让其包裹内容 */
 }
 
 /* 3. 为 virtual-tree 组件本身设置固定高度，使其内部滚动 */
 .select-tree-popper .select-tree-content {
+  height: 100%;
+}
+
+/* 4. 新增：为 v-loading 的容器设置高度 */
+.select-tree-popper .loading-container {
   height: 500px;
 }
 </style>
