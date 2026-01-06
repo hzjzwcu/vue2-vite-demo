@@ -67,6 +67,8 @@ export default {
       flattenedNodes: [],
       // 存储当前可见的节点（根据展开/折叠状态）
       visibleNodes: [],
+      // 用于保存滚动位置
+      savedScrollOffset: 0,
     };
   },
   computed: {
@@ -144,7 +146,7 @@ export default {
             nodeId: nodeId,          // 节点自身的ID
             label: node[this.props.label],
             level,
-            expanded: true, // 默认全部展开
+            expanded: false, // 默认全部折叠
             visible: true,
             parent,
             childrenIds: (node[this.props.children] || []).map(
@@ -167,12 +169,16 @@ export default {
 
     // 切换节点的展开/折叠状态
     toggleNode(node) {
+      // 在 DOM 更新前记录当前的滚动位置
+      const scrollOffset = this.$refs.virtualList.getOffset();
+
       node.expanded = !node.expanded;
       this.updateVisibleNodes();
-      // 更新可见节点后，需要调用 reset() 来强制虚拟列表重新计算滚动高度
+      
+      // DOM 更新后，恢复之前的滚动位置，而不是重置
       this.$nextTick(() => {
         if (this.$refs.virtualList) {
-          this.$refs.virtualList.reset();
+          this.$refs.virtualList.scrollToOffset(scrollOffset);
         }
       });
     },
@@ -276,50 +282,6 @@ export default {
         this.handleCheckChange(nodeToDeselect, false);
       }
     },
-
-    /**
-     * @description 公共方法：滚动到指定的节点
-     * @param {string} nodeId - 要滚动到的节点ID
-     */
-    scrollToNode(nodeId) {
-      const index = this.visibleNodes.findIndex(node => node.nodeId === nodeId);
-      if (index !== -1 && this.$refs.virtualList) {
-        // 调用 vue-virtual-scroll-list 的内置方法
-        this.$refs.virtualList.scrollToIndex(index);
-      }
-    },
-
-    /**
-     * @description 公共方法：折叠所有节点，然后只展开选中节点的祖先路径
-     */
-    collapseAllAndExpandSelected() {
-      const nodesToExpand = new Set();
-      // 遍历所有选中项，将其所有祖先节点标记为需要展开
-      this.internalSelection.forEach(selectedId => {
-          let currentNode = this.flattenedNodes.find(n => n.nodeId === selectedId);
-          if (currentNode) {
-              let parent = currentNode.parent;
-              while(parent) {
-                  nodesToExpand.add(parent);
-                  parent = parent.parent;
-              }
-          }
-      });
-
-      // 根据标记设置每个节点的展开状态
-      this.flattenedNodes.forEach(node => {
-          // 在非关联模式下，总是展开所有节点
-          node.expanded = !this.linked || nodesToExpand.has(node);
-      });
-
-      // 更新可见节点列表
-      this.updateVisibleNodes();
-
-      // 重置虚拟列表以应用UI更新
-      if (this.$refs.virtualList) {
-          this.$refs.virtualList.reset();
-      }
-    },
     
     // “全选”复选框的处理器
     handleSelectAll(checked) {
@@ -329,6 +291,22 @@ export default {
       } else {
         this.internalSelection = new Set();
       }
+    },
+
+    // === 新增：状态保存与恢复 ===
+    saveState() {
+      if (this.$refs.virtualList) {
+        this.savedScrollOffset = this.$refs.virtualList.getOffset();
+      }
+    },
+    restoreState() {
+      // 恢复前需要确保`visibleNodes`已经更新
+      this.updateVisibleNodes(); 
+      this.$nextTick(() => {
+        if (this.$refs.virtualList) {
+          this.$refs.virtualList.scrollToOffset(this.savedScrollOffset);
+        }
+      });
     },
   },
 };

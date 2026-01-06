@@ -45,31 +45,40 @@
 </template>
 
 <script>
-import VirtualTree from './VirtualTree.vue';
-import ElSelect from 'element-ui/lib/select';
+import VirtualTree from "./VirtualTree.vue";
+import ElSelect from "element-ui/lib/select";
 
 export default {
-  name: 'SelectTree',
+  name: "SelectTree",
+  model: {
+    prop: "value", // 用于 v-model 双向绑定的 prop 名称
+    event: "input", // 用于 v-model 双向绑定的事件名称
+  },
   components: {
     VirtualTree,
     ElSelect,
   },
   props: {
-    // 原始树形数据
+    // 用于 v-model 双向绑定
+    value: {
+      type: Array,
+      default: () => [],
+    },
+    // The original tree data
     data: {
       type: Array,
       required: true,
     },
-    // 树形数据中，id、label、children对应的键名
+    // The keys for id, label, and children in the tree data
     treeProps: {
       type: Object,
       default: () => ({
-        id: 'instId',
-        label: 'instAttrName',
-        children: 'children',
+        id: "instId",
+        label: "instAttrName",
+        children: "children",
       }),
     },
-    // 从父组件接收 a 'linked' prop
+    // Receives a 'linked' prop from the parent component
     linked: {
       type: Boolean,
       default: true,
@@ -77,16 +86,18 @@ export default {
   },
   data() {
     return {
-      // 核心状态：存储所有选中节点的 ID (Set 结构保证唯一性)
-      selection: new Set(),
-      // 搜索框中的查询字符串
-      searchQuery: '',
-      // 一个从 ID 到完整节点对象的映射，用于快速查找
+      // 核心状态：存储所有选中节点的 ID (Set 结构保证唯一性)，从 v-model prop 初始化
+      selection: new Set(this.value),
+      // Search query string from the input box
+      searchQuery: "",
+      // A map from ID to the full node object for quick lookups
       idToNodeMap: {},
-      // 用于判断下拉框是否可见的状态
+      // State to determine if the dropdown is visible
       dropdownVisible: false,
-      // 新增：用于控制加载状态
+      // New: for controlling the loading state
       isLoading: false,
+      // A flag to prevent infinite loops in the v-model implementation
+      isInternalChange: false,
     };
   },
   computed: {
@@ -99,7 +110,7 @@ export default {
       const tags = [];
       const labelKey = this.treeProps.label;
 
-      this.selection.forEach(id => {
+      this.selection.forEach((id) => {
         if (this.idToNodeMap[id]) {
           const originalNode = this.idToNodeMap[id];
           tags.push(originalNode[labelKey]);
@@ -126,7 +137,9 @@ export default {
 
           const labelProp = this.treeProps.label;
           if (
-            node[labelProp].toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+            node[labelProp]
+              .toLowerCase()
+              .includes(this.searchQuery.toLowerCase()) ||
             children.length > 0
           ) {
             const newNode = { ...node, [childrenProp]: children };
@@ -143,19 +156,37 @@ export default {
     },
   },
   watch: {
-    // 当原始数据 data 变化时，重新构建 ID 到节点的映射
+    // 监视来自父组件的 value prop 的变化 (外部到内部)
+    value: {
+      handler(newVal) {
+        // 如果是内部变更触发的，则重置标志位并忽略此次更新，以中断循环
+        if (this.isInternalChange) {
+          this.isInternalChange = false;
+          return;
+        }
+        // 否则，视为外部变更，用新值更新内部的 selection
+        this.selection = new Set(newVal);
+      },
+      deep: true,
+    },
+
+    // 监视原始树数据的变化，以重建 ID 到节点的映射
     data: {
       handler(newData) {
         this.buildIdToNodeMap(newData);
       },
       immediate: true,
     },
-    // 侦听选中项的变化，并打印到控制台
+
+    // 监视内部 selection 的变化 (内部到外部)
     selection: {
       handler(newSelection) {
-        console.log('当前选中的节点ID:', [...newSelection]);
+        // 在触发 input 事件前，设置标志位，表明这是一个内部变更
+        this.isInternalChange = true;
+        // 向外触发 input 事件，更新父组件的 v-model
+        this.$emit("input", [...newSelection]);
       },
-      deep: true
+      deep: true,
     },
   },
   methods: {
@@ -184,7 +215,7 @@ export default {
     filterMethod(query) {
       // 这是一个启发式方法：如果查询变为空，但下拉框仍然可见，
       // 我们就假设这是 el-select 在选中后自动清空了输入框，此时我们忽略这次更新，保持筛选条件不变。
-      if (query === '' && this.dropdownVisible) {
+      if (query === "" && this.dropdownVisible) {
         return;
       }
       this.searchQuery = query;
@@ -200,12 +231,15 @@ export default {
       // 关键逻辑：根据标签文本反向查找对应的节点 ID
       // 这里只遍历当前已选中的节点，效率较高
       for (const id of this.selection) {
-        if (this.idToNodeMap[id] && this.idToNodeMap[id][labelKey] === removedLabel) {
+        if (
+          this.idToNodeMap[id] &&
+          this.idToNodeMap[id][labelKey] === removedLabel
+        ) {
           idToRemove = id;
           break;
         }
       }
-      
+
       if (idToRemove) {
         // 调用子组件的公共方法来执行完整的、包含父子联动的取消选择操作
         this.$refs.virtualTree.deselectNodeAndChildren(idToRemove);
@@ -222,34 +256,26 @@ export default {
     handleVisibleChange(isVisible) {
       this.dropdownVisible = isVisible;
       if (isVisible) {
+        // --- OPENING ---
         this.isLoading = true;
-        // 使用 setTimeout 将繁重计算推迟到下一个事件循环
-        // 这让 Vue 有时间更新 DOM 并显示 loading 指示器
+        // 使用 setTimeout 让 loading 指示器有机会渲染
         setTimeout(() => {
-          this.$nextTick(() => { // 确保 virtualTree ref 可用
+          this.$nextTick(() => {
             if (this.$refs.virtualTree) {
-              // 1. 同步执行展开/折叠操作
-              this.$refs.virtualTree.collapseAllAndExpandSelected();
-
-              // 2. 滚动到第一个选中项
-              this.$nextTick(() => {
-                if (this.selection.size > 0) {
-                    const firstSelectedId = this.selectedIds[0];
-                    if (firstSelectedId) {
-                        this.$refs.virtualTree.scrollToNode(firstSelectedId);
-                    }
-                }
-                // 3. 所有操作完成后，隐藏 loading
-                this.isLoading = false;
-              });
-            } else {
-              this.isLoading = false; // 以防万一 ref 不存在
+              // 指示树组件恢复其滚动位置和展开状态
+              this.$refs.virtualTree.restoreState();
             }
+            this.isLoading = false;
           });
-        }, 50); // 50ms的延迟比0更可靠，能确保渲染线程优先执行
+        }, 50);
       } else {
-        // 当下拉框关闭时，重置搜索查询
-        this.searchQuery = '';
+        // --- CLOSING ---
+        // 重置搜索查询
+        this.searchQuery = ""; 
+        // 保存滚动位置和展开状态
+        if (this.$refs.virtualTree) {
+          this.$refs.virtualTree.saveState();
+        }
       }
     },
   },

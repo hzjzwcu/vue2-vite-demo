@@ -117,12 +117,13 @@ export default {
 }
 .node-arrow {
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  background-size: contain;
+  width: 0; /* Use border to draw triangle */
+  height: 0; /* Use border to draw triangle */
+  border-top: 4px solid transparent; /* Top transparent border */
+  border-bottom: 4px solid transparent; /* Bottom transparent border */
+  border-left: 5px solid #606266; /* Left border to form right-pointing triangle */
   margin-right: 5px;
   flex-shrink: 0;
-  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiPjxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0iTTM4NCAxOTJ2NjQwbDQ0OC0zMjB6Ii8+PC9zdmc+');
   transform: rotate(0deg);
   transition: transform 0.2s ease-in-out;
 }
