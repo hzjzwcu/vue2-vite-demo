@@ -94,6 +94,7 @@ export default {
         selection: this.internalSelection,
         toggleNode: this.toggleNode,
         handleCheckChange: this.handleCheckChange,
+        linked: this.linked
       };
     },
     // “全选”复选框是否被选中

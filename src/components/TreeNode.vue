@@ -5,7 +5,11 @@
     @click.stop="toggle"
   >
     <i
-      :class="['node-arrow', source.expanded ? 'expanded' : '', source.isLeaf ? 'is-leaf' : '']"
+      :class="[
+        'node-arrow',
+        source.expanded ? 'expanded' : '',
+        source.isLeaf ? 'is-leaf' : '',
+      ]"
       @click.stop="toggle"
     ></i>
 
@@ -22,14 +26,18 @@
 </template>
 
 <script>
-import ElCheckbox from 'element-ui/lib/checkbox';
+import ElCheckbox from "element-ui/lib/checkbox";
 
 export default {
-  name: 'TreeNode',
+  name: "TreeNode",
   components: {
     ElCheckbox,
   },
   props: {
+    linked: {
+      type: Boolean,
+      required: true,
+    },
     // The node data from virtual-list
     source: {
       type: Object,
@@ -42,8 +50,8 @@ export default {
     },
     // The full list of flattened nodes
     flattenedNodes: {
-        type: Array,
-        required: true,
+      type: Array,
+      required: true,
     },
     // Handler for toggling expand/collapse
     toggleNode: {
@@ -61,14 +69,17 @@ export default {
       return this.selection.has(this.source.nodeId);
     },
     isChildIndeterminate() {
-        if (this.isSelected || this.source.isLeaf) return false;
+      if (!this.linked) return false;
+      if (this.isSelected || this.source.isLeaf) return false;
 
-        const descendants = this.getDescendants(this.source);
-        if (descendants.length === 0) return false;
+      const descendants = this.getDescendants(this.source);
+      if (descendants.length === 0) return false;
 
-        const selectedCount = descendants.filter(d => this.selection.has(d.nodeId)).length;
-        return selectedCount > 0 && selectedCount < descendants.length;
-    }
+      const selectedCount = descendants.filter((d) =>
+        this.selection.has(d.nodeId)
+      ).length;
+      return selectedCount > 0 && selectedCount < descendants.length;
+    },
   },
   methods: {
     toggle() {
@@ -143,6 +154,6 @@ export default {
 }
 /* Align checkbox with Element UI's tree component */
 ::v-deep .el-checkbox__input {
-    vertical-align: middle;
+  vertical-align: middle;
 }
 </style>
