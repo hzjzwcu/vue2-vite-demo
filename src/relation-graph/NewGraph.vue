@@ -37,7 +37,7 @@ export default {
                     { id: "N6", text: "Node 6" }
                 ],
                 lines: [
-                    { from: "N3", to: "N4", text: "连线文本1" },
+                    { from: "N3", to: "N4", text: "连线" },
                     { from: "N4", to: "N5", text: "连线文本2" },
                     { from: "N5", to: "N6", data: { part1: "连线文本3-1", part2: "连线文本3-2" } },
                     { from: "N6", to: "N3", text: "连线文本4" }

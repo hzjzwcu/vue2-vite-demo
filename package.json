@@ -14,15 +14,11 @@
     "d3": "^7.9.0",
     "el-virtual-scroll-tree": "^1.3.0",
     "element-ui": "^2.15.14",
-<<<<<<< Updated upstream
     "vue": "^2.6.14",
-    "vue-virtual-scroll-list": "^2.3.5"
-=======
+    "vue-virtual-scroll-list": "^2.3.5",
     "relation-graph": "^2.2.11",
-    "vue": "^2.6.14",
     "vue-router": "^3.6.5",
     "vue-virtual-scroller": "^1.1.2"
->>>>>>> Stashed changes
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
