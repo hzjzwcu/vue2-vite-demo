@@ -14,7 +14,7 @@
         <!-- 
             使用 foreignObject 嵌入HTML, 并实现自定义tooltip
         -->
-        <foreignObject :x="textPosition.x - 25" :y="textPosition.y - 25" width="50" height="20" 
+        <foreignObject :x="textPosition.x - 25" :y="textPosition.y - 18" width="50" height="20" 
                      :transform="`rotate(${correctedAngle}, ${textPosition.x}, ${textPosition.y})`" style="overflow: visible;">
             
             <div class="line-text-wrapper" 
