@@ -69,27 +69,36 @@ export default {
     },
     watch: {
         'line.text': {
-            // 当文本变化时，检查是否溢出
             handler() {
-                // 使用 nextTick 确保 DOM 更新完毕
                 this.$nextTick(() => {
                     const textElement = this.$refs.textContent;
                     if (textElement) {
-                        // 如果内容的滚动宽度大于可见宽度，则表示文本被截断
                         this.isTextOverflowing = textElement.scrollWidth > textElement.clientWidth;
                     }
                 });
             },
-            immediate: true // 立即执行一次，以处理初始文本
+            immediate: true
         }
     },
     computed: {
+        // 提取起点坐标
+        startPoint() {
+            return {
+                x: this.link.fromNode.x + 50,
+                y: this.link.fromNode.y + 50,
+            };
+        },
+        // 提取终点坐标
+        endPoint() {
+            return {
+                x: this.link.toNode.x + 50,
+                y: this.link.toNode.y + 50,
+            };
+        },
         /** 连线路径 **/
         pathData() {
-            const fx = this.link.fromNode.x + 50;
-            const fy = this.link.fromNode.y + 50;
-            const tx = this.link.toNode.x + 50;
-            const ty = this.link.toNode.y + 50;
+            const { x: fx, y: fy } = this.startPoint;
+            const { x: tx, y: ty } = this.endPoint;
 
             const dx = tx - fx;
             const dy = ty - fy;
@@ -108,31 +117,23 @@ export default {
         },
         /** 连线中点 **/
         textPosition() {
-            const fx = this.link.fromNode.x + 50;
-            const fy = this.link.fromNode.y + 50;
-            const tx = this.link.toNode.x + 50;
-            const ty = this.link.toNode.y + 50;
             return {
-                x: (fx + tx) / 2,
-                y: (fy + ty) / 2
+                x: (this.startPoint.x + this.endPoint.x) / 2,
+                y: (this.startPoint.y + this.endPoint.y) / 2
             };
         },
-        /** 计算连线角度 **/
-        angle() {
-            const fx = this.link.fromNode.x + 50;
-            const fy = this.link.fromNode.y + 50;
-            const tx = this.link.toNode.x + 50;
-            const ty = this.link.toNode.y + 50;
-            const rad = Math.atan2(ty - fy, tx - fx);
-            return (rad * 180) / Math.PI;
-        },
-        /** 校正后的角度，确保文本始终朝上 **/
+        /** 计算并校正角度，确保文本始终朝上 **/
         correctedAngle() {
-            let angle = this.angle;
+            const dx = this.endPoint.x - this.startPoint.x;
+            const dy = this.endPoint.y - this.startPoint.y;
+            const rad = Math.atan2(dy, dx);
+            let angle = (rad * 180) / Math.PI;
+
+            // 当角度超出-90~90度范围时，翻转180度
             if (angle < -90) {
-                angle = angle + 180;
+                angle += 180;
             } else if (angle > 90) {
-                angle = angle - 180;
+                angle -= 180;
             }
             return angle;
         }
@@ -158,7 +159,6 @@ export default {
 
 .custom-tooltip-container {
     position: absolute;
-    z-index: 100;
     bottom: 20px; 
     left: 50%;
     transform: translateX(-50%);
@@ -173,7 +173,6 @@ export default {
     white-space: nowrap;
     font-size: 12px;
     line-height: 1.2;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
     position: relative;
 }
 
