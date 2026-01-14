@@ -14,22 +14,37 @@
         <!-- 
             使用 foreignObject 嵌入HTML, 并实现自定义tooltip
         -->
-        <foreignObject :x="textPosition.x - 25" :y="textPosition.y - 18" width="50" height="20" 
-                     :transform="`rotate(${correctedAngle}, ${textPosition.x}, ${textPosition.y})`" style="overflow: visible;">
+        <foreignObject :x="textPosition.x - 100" :y="textPosition.y - (hasPart2 ? 40 : 20)" :width="200" :height="hasPart2 ? 45 : 25"
+                     :transform="`rotate(${angle}, ${textPosition.x}, ${textPosition.y})`" style="overflow: visible;">
             
-            <div class="line-text-wrapper" 
-                 @mouseover="showTooltip = true" 
-                 @mouseleave="showTooltip = false"
+            <div v-if="line.data && line.data.part1" class="line-text-wrapper" 
+                 @mouseover="showTooltip1 = true" 
+                 @mouseleave="showTooltip1 = false"
                  xmlns="http://www.w3.org/1999/xhtml">
                 
-                <div ref="textContent" class="line-text-content" :style="{ color: fontColor }">
-                    {{ line.text }}
+                <div ref="textContent1" class="line-text-content" :style="{ color: fontColor }">
+                    {{ line.data.part1 }}
                 </div>
 
-                <!-- 自定义 Tooltip, 仅当文本溢出时显示 -->
-                <div v-if="showTooltip && isTextOverflowing" class="custom-tooltip-container">
+                <div v-if="showTooltip1 && isTextOverflowing1" class="custom-tooltip-container">
                     <div class="custom-tooltip-content">
-                        {{ line.text }}
+                        {{ line.data.part1 }}
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="line.data && line.data.part2" class="line-text-wrapper" 
+                 @mouseover="showTooltip2 = true" 
+                 @mouseleave="showTooltip2 = false"
+                 xmlns="http://www.w3.org/1999/xhtml">
+                
+                <div ref="textContent2" class="line-text-content" :style="{ color: fontColor }">
+                    {{ line.data.part2 }}
+                </div>
+
+                <div v-if="showTooltip2 && isTextOverflowing2" class="custom-tooltip-container">
+                    <div class="custom-tooltip-content">
+                        {{ line.data.part2 }}
                     </div>
                 </div>
             </div>
@@ -63,24 +78,38 @@ export default {
     },
     data() {
         return {
-            showTooltip: false,
-            isTextOverflowing: false // 文本是否溢出
+            showTooltip1: false,
+            isTextOverflowing1: false, // 文本是否溢出
+            showTooltip2: false,
+            isTextOverflowing2: false, // 文本是否溢出
         };
     },
     watch: {
-        'line.text': {
+        'line.data': {
             handler() {
                 this.$nextTick(() => {
-                    const textElement = this.$refs.textContent;
-                    if (textElement) {
-                        this.isTextOverflowing = textElement.scrollWidth > textElement.clientWidth;
+                    if (this.line.data && this.line.data.part1) {
+                        const textElement1 = this.$refs.textContent1;
+                        if (textElement1) {
+                            this.isTextOverflowing1 = textElement1.scrollWidth > textElement1.clientWidth;
+                        }
+                    }
+                    if (this.line.data && this.line.data.part2) {
+                        const textElement2 = this.$refs.textContent2;
+                        if (textElement2) {
+                            this.isTextOverflowing2 = textElement2.scrollWidth > textElement2.clientWidth;
+                        }
                     }
                 });
             },
+            deep: true,
             immediate: true
         }
     },
     computed: {
+        hasPart2() {
+            return !!(this.line.data && this.line.data.part2);
+        },
         // 提取起点坐标
         startPoint() {
             return {
@@ -123,7 +152,7 @@ export default {
             };
         },
         /** 计算并校正角度，确保文本始终朝上 **/
-        correctedAngle() {
+        angle() {
             const dx = this.endPoint.x - this.startPoint.x;
             const dy = this.endPoint.y - this.startPoint.y;
             const rad = Math.atan2(dy, dx);
@@ -148,7 +177,7 @@ export default {
 }
 
 .line-text-content {
-    width: 50px;
+    width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
