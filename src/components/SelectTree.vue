@@ -257,17 +257,28 @@ export default {
       this.dropdownVisible = isVisible;
       if (isVisible) {
         // --- OPENING ---
-        this.isLoading = true;
-        // 使用 setTimeout 让 loading 指示器有机会渲染
-        setTimeout(() => {
-          this.$nextTick(() => {
-            if (this.$refs.virtualTree) {
-              // 指示树组件恢复其滚动位置和展开状态
-              this.$refs.virtualTree.restoreState();
-            }
-            this.isLoading = false;
-          });
-        }, 50);
+        // 使用 nextTick 确保 virtualTree 引用存在
+        this.$nextTick(() => {
+          if (!this.$refs.virtualTree) return;
+
+          if (this.selection.size === 0) {
+            // 如果没有选中项，则重置树的状态
+            this.$refs.virtualTree.resetTreeState();
+          } else {
+            // 如果有选中项，则恢复之前的状态
+            this.isLoading = true;
+            // 使用 setTimeout 让 loading 指示器有机会渲染
+            setTimeout(() => {
+              this.$nextTick(() => {
+                if (this.$refs.virtualTree) {
+                  // 指示树组件恢复其滚动位置和展开状态
+                  this.$refs.virtualTree.restoreState();
+                }
+                this.isLoading = false;
+              });
+            }, 50);
+          }
+        });
       } else {
         // --- CLOSING ---
         // 重置搜索查询

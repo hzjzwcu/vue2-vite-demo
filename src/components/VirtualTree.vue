@@ -301,11 +301,39 @@ export default {
       }
     },
     restoreState() {
-      // 恢复前需要确保`visibleNodes`已经更新
-      this.updateVisibleNodes(); 
+      // 1. 更新数据源，这会决定哪些节点应该是可见的
+      this.updateVisibleNodes();
+
+      // 2. 等待 DOM 更新，以确保 virtual-list 接收到了新的数据
+      this.$nextTick(() => {
+        const virtualList = this.$refs.virtualList;
+        if (virtualList) {
+          // 3. 调用 reset() 清除所有内部缓存（如项目尺寸），强制重新计算
+          virtualList.reset();
+
+          // 4. 在下一次 DOM 更新（即 reset 生效）后，再滚动到保存的位置
+          // 这是确保同步的关键步骤
+          this.$nextTick(() => {
+            virtualList.scrollToOffset(this.savedScrollOffset);
+          });
+        }
+      });
+    },
+
+    // === 新增：重置树的状态 ===
+    resetTreeState() {
+      // 1. 收起所有节点
+      this.flattenedNodes.forEach(node => {
+        node.expanded = false;
+      });
+
+      // 2. 更新可见节点
+      this.updateVisibleNodes();
+
+      // 3. 滚动到顶部
       this.$nextTick(() => {
         if (this.$refs.virtualList) {
-          this.$refs.virtualList.scrollToOffset(this.savedScrollOffset);
+          this.$refs.virtualList.scrollToOffset(0);
         }
       });
     },
