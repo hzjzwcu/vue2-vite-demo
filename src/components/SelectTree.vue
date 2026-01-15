@@ -35,6 +35,7 @@
           ref="virtualTree"
           v-model="selection"
           :data="filteredTreeData"
+          :original-data="data"
           :props="treeProps"
           :linked="linked"
           class="select-tree-content"
@@ -64,12 +65,12 @@ export default {
       type: Array,
       default: () => [],
     },
-    // The original tree data
+    // 原始树形数据
     data: {
       type: Array,
       required: true,
     },
-    // The keys for id, label, and children in the tree data
+    // 用于指定树形数据中 id, label, 和 children 的键名
     treeProps: {
       type: Object,
       default: () => ({
@@ -78,7 +79,7 @@ export default {
         children: "children",
       }),
     },
-    // Receives a 'linked' prop from the parent component
+    // 从父组件接收 'linked' prop，用于控制父子节点是否联动
     linked: {
       type: Boolean,
       default: true,
@@ -88,15 +89,15 @@ export default {
     return {
       // 核心状态：存储所有选中节点的 ID (Set 结构保证唯一性)，从 v-model prop 初始化
       selection: new Set(this.value),
-      // Search query string from the input box
+      // 输入框中的搜索查询字符串
       searchQuery: "",
-      // A map from ID to the full node object for quick lookups
+      // 从 ID 到完整节点对象的映射，用于快速查找
       idToNodeMap: {},
-      // State to determine if the dropdown is visible
+      // 用于判断下拉框是否可见的状态
       dropdownVisible: false,
-      // New: for controlling the loading state
+      // 新增：用于控制加载状态
       isLoading: false,
-      // A flag to prevent infinite loops in the v-model implementation
+      // 用于防止 v-model 实现中出现无限循环的标志位
       isInternalChange: false,
     };
   },
@@ -188,6 +189,18 @@ export default {
       },
       deep: true,
     },
+
+    // 监视'linked' prop 的变化
+    linked: {
+      handler(newVal, oldVal) {
+        if (newVal !== oldVal) {
+          this.handleClear(); // 清空选项
+          if (this.$refs.virtualTree) {
+            this.$refs.virtualTree.resetTreeState(); // 重置树
+          }
+        }
+      },
+    },
   },
   methods: {
     // 构建 ID 到完整节点对象的映射，用于快速查找
@@ -256,7 +269,7 @@ export default {
     handleVisibleChange(isVisible) {
       this.dropdownVisible = isVisible;
       if (isVisible) {
-        // --- OPENING ---
+        // --- 打开时 ---
         // 使用 nextTick 确保 virtualTree 引用存在
         this.$nextTick(() => {
           if (!this.$refs.virtualTree) return;
@@ -280,7 +293,7 @@ export default {
           }
         });
       } else {
-        // --- CLOSING ---
+        // --- 关闭时 ---
         // 重置搜索查询
         this.searchQuery = ""; 
         // 保存滚动位置和展开状态

@@ -38,27 +38,27 @@ export default {
       type: Boolean,
       required: true,
     },
-    // The node data from virtual-list
+    // 来自 virtual-list 的节点数据
     source: {
       type: Object,
       required: true,
     },
-    // The global selection Set
+    // 全局的 selection Set
     selection: {
       type: Set,
       required: true,
     },
-    // The full list of flattened nodes
-    flattenedNodes: {
-      type: Array,
+    // 包含所有原始节点的 Map
+    originalNodeMasterMap: {
+      type: Object,
       required: true,
     },
-    // Handler for toggling expand/collapse
+    // 用于切换展开/折叠状态的处理器
     toggleNode: {
       type: Function,
       required: true,
     },
-    // Handler for checkbox changes
+    // 用于处理复选框变化的处理器
     handleCheckChange: {
       type: Function,
       required: true,
@@ -78,7 +78,12 @@ export default {
       const selectedCount = descendants.filter((d) =>
         this.selection.has(d.nodeId)
       ).length;
-      return selectedCount > 0 && selectedCount < descendants.length;
+      
+      // 如果一个父节点的子节点中，只有部分被选中（而不是全部或零个），则该父节点处于半选状态。
+      // 这也隐式地处理了部分子节点被选中，而其他子节点自身也处于半选状态的情况。
+      const allDescendantsSelected = selectedCount === descendants.length;
+      
+      return selectedCount > 0 && !allDescendantsSelected;
     },
   },
   methods: {
@@ -90,20 +95,17 @@ export default {
     handleCheck(checked) {
       this.handleCheckChange(this.source, checked);
     },
+    // 此方法现在使用 master map 来正确查找所有后代节点
     getDescendants(startNode) {
       const descendants = [];
       const queue = [...(startNode.childrenIds || [])];
-      const allNodesById = this.flattenedNodes.reduce((acc, n) => {
-        acc[n.nodeId] = n;
-        return acc;
-      }, {});
-
+        
       while (queue.length > 0) {
         const childId = queue.shift();
-        const childNode = allNodesById[childId];
+        const childNode = this.originalNodeMasterMap[childId];
         if (childNode) {
           descendants.push(childNode);
-          if (childNode.childrenIds) {
+          if (childNode.childrenIds && childNode.childrenIds.length > 0) {
             queue.push(...childNode.childrenIds);
           }
         }
@@ -144,6 +146,7 @@ export default {
 .node-arrow.is-leaf {
   background-image: none;
   cursor: default;
+  border-left: 5px solid transparent; /* Make it invisible */
 }
 .node-checkbox {
   display: flex;
