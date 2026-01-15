@@ -14,7 +14,7 @@
         <!-- 
             使用 foreignObject 嵌入HTML, 并实现自定义tooltip
         -->
-        <foreignObject :x="textPosition.x - 100" :y="textPosition.y - (hasPart2 ? 40 : 20)" :width="200" :height="hasPart2 ? 45 : 25"
+        <foreignObject :x="textPosition.x - textMaxWidth / 2" :y="textPosition.y - (hasPart2 ? 37 : 18)" :width="textMaxWidth" :height="hasPart2 ? 38 : 22"
                      :transform="`rotate(${angle}, ${textPosition.x}, ${textPosition.y})`" style="overflow: visible;">
             
             <div v-if="line.data && line.data.part1" class="line-text-wrapper" 
@@ -22,7 +22,7 @@
                  @mouseleave="showTooltip1 = false"
                  xmlns="http://www.w3.org/1999/xhtml">
                 
-                <div ref="textContent1" class="line-text-content" :style="{ color: fontColor }">
+                <div ref="textContent1" class="line-text-content" :style="{ color: fontColor, width: textMaxWidth }">
                     {{ line.data.part1 }}
                 </div>
 
@@ -38,7 +38,7 @@
                  @mouseleave="showTooltip2 = false"
                  xmlns="http://www.w3.org/1999/xhtml">
                 
-                <div ref="textContent2" class="line-text-content" :style="{ color: fontColor }">
+                <div ref="textContent2" class="line-text-content" :style="{ color: fontColor, width: textMaxWidth }">
                     {{ line.data.part2 }}
                 </div>
 
@@ -57,6 +57,10 @@
 export default {
     name: 'SimpleLine',
     props: {
+        textMaxWidth: {
+            type: Number,
+            default: 150
+        },
         link: {
             type: Object,
             required: true
@@ -177,13 +181,12 @@ export default {
 }
 
 .line-text-content {
-    width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: center;
     font-size: 12px;
-    line-height: 20px;
+    line-height: 1.3;
 }
 
 .custom-tooltip-container {
