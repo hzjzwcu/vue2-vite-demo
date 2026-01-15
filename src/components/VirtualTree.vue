@@ -17,6 +17,7 @@
       :data-component="itemComponent"
       :estimate-size="32"
       :extra-props="extraProps"
+      @mousedown.native="handleMouseDown"
     />
   </div>
 </template>
@@ -143,6 +144,10 @@ export default {
     },
   },
   methods: {
+    // 新增：处理鼠标在列表上按下的事件
+    handleMouseDown() {
+      this.$emit('selection-in-progress');
+    },
     /**
      * @description 构建包含所有原始节点完整信息的 Master Map
      */

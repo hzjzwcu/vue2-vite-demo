@@ -39,6 +39,7 @@
           :props="treeProps"
           :linked="linked"
           class="select-tree-content"
+          @selection-in-progress="handleSelectionInProgress"
         />
       </div>
     </template>
@@ -99,6 +100,8 @@ export default {
       isLoading: false,
       // 用于防止 v-model 实现中出现无限循环的标志位
       isInternalChange: false,
+      // 新增：用于区分“手动清空”和“选择后自动清空”的标志位
+      isSelecting: false,
     };
   },
   computed: {
@@ -203,6 +206,10 @@ export default {
     },
   },
   methods: {
+    // 新增: 当在树内部点击时，设置标志位
+    handleSelectionInProgress() {
+      this.isSelecting = true;
+    },
     // 构建 ID 到完整节点对象的映射，用于快速查找
     buildIdToNodeMap(nodes) {
       const map = {};
@@ -226,10 +233,9 @@ export default {
      * @param {string} query - 当前输入框的值
      */
     filterMethod(query) {
-      // 这是一个启发式方法：如果查询变为空，但下拉框仍然可见，
-      // 我们就假设这是 el-select 在选中后自动清空了输入框，此时我们忽略这次更新，保持筛选条件不变。
-      if (query === "" && this.dropdownVisible) {
-        return;
+      if (query === "" && this.isSelecting) {
+        this.isSelecting = false; // 重置标志位
+        return; // 忽略本次由选择导致的清空
       }
       this.searchQuery = query;
     },
