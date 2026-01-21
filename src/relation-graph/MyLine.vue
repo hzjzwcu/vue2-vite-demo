@@ -187,6 +187,7 @@ export default {
     text-align: center;
     font-size: 12px;
     line-height: 1.3;
+    transform: translateZ(0);
 }
 
 .custom-tooltip-container {
