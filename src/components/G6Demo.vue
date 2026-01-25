@@ -56,7 +56,7 @@ export default {
           },
         },
         edge: {
-            type: 'cubic', // Set global edge type to cubic for the transform
+            type: 'quadratic', // Use quadratic for a single-bend curve
             style: {
                 endArrow: true,
             }
@@ -68,7 +68,7 @@ export default {
           preventOverlap: true,
           unitRadius: 100,
         },
-        behaviors: ['drag-canvas', 'drag-element'],
+        behaviors: ['drag-canvas', 'drag-element', 'zoom-canvas'],
         transforms: [{ type: 'process-parallel-edges' }], // Add the transform here
       });
       graph.render();
