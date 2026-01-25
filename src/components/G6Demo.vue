@@ -94,8 +94,8 @@ export default {
 
 <style scoped>
 .g6-x {
-  width: 800px;
-  height: 500px;
+  width: calc(100vw - 50px);
+  height: calc(100vh - 100px);
   box-sizing: border-box;
   border: 1px solid #ccc;
   margin-left: 20px;
