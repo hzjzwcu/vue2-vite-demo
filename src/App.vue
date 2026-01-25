@@ -1,10 +1,10 @@
 <template>
   <div id="app">
     <div class="tabs">
+      <button @click="activeTab = 'G6Demo'" :class="{ active: activeTab === 'G6Demo' }">G6</button>
       <button @click="activeTab = 'CytoscapeDemo'" :class="{ active: activeTab === 'CytoscapeDemo' }">Cytoscape</button>
       <button @click="activeTab = 'EchartsDemo'" :class="{ active: activeTab === 'EchartsDemo' }">ECharts</button>
       <button @click="activeTab = 'D3Demo'" :class="{ active: activeTab === 'D3Demo' }">D3.js</button>
-      <button @click="activeTab = 'G6Demo'" :class="{ active: activeTab === 'G6Demo' }">G6</button>
     </div>
     <div class="content">
       <component :is="activeTab"></component>
@@ -28,7 +28,7 @@ export default {
   },
   data() {
     return {
-      activeTab: 'CytoscapeDemo'
+      activeTab: 'G6Demo'
     };
   }
 };

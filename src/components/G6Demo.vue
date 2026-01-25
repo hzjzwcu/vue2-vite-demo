@@ -30,23 +30,23 @@ export default {
           { id: '9' },
         ],
         edges: [
-          { source: '1', target: '2' },
-          { source: '1', target: '2', id: '1-2-b' },
-          { source: '2', target: '3' },
-          { source: '3', target: '4' },
-          { source: '4', target: '1' },
-          { source: '2', target: '5' },
-          { source: '5', target: '6' },
-          { source: '6', target: '1' },
-          { source: '2', target: '7' },
-          { source: '7', target: '8' },
-          { source: '8', target: '9' },
-          { source: '9', target: '2' },
+          { source: '1', target: '2', amount1: '1000元', amount2: '5000元' },
+          { source: '1', target: '2', id: '1-2-b', amount1: '2000元', amount2: '3000元' },
+          { source: '2', target: '3', amount1: '1500元', amount2: '4500元' },
+          { source: '3', target: '4', amount1: '3000元', amount2: '2000元' },
+          { source: '4', target: '1', amount1: '2500元', amount2: '3500元' },
+          { source: '2', target: '5', amount1: '4000元', amount2: '1000元' },
+          { source: '5', target: '6', amount1: '500元', amount2: '5500元' },
+          { source: '6', target: '1', amount1: '6000元', amount2: '1000元' },
+          { source: '2', target: '7', amount1: '1200元', amount2: '2800元' },
+          { source: '7', target: '8', amount1: '3200元', amount2: '1800元' },
+          { source: '8', target: '9', amount1: '4200元', amount2: '800元' },
+          { source: '9', target: '2', amount1: '2200元', amount2: '4800元' },
         ],
       };
 
       const graph = new Graph({
-        container: 'containerG6',
+        container: this.$refs.containerG6, // 关键修改：使用 ref 获取 DOM 元素
         data,
         node: {
           style: {
@@ -59,7 +59,13 @@ export default {
             type: 'quadratic', // Use quadratic for a single-bend curve
             style: {
                 endArrow: true,
-            }
+            },
+            state: {
+              hover: {
+                stroke: '#1890ff', // A highlight color for hover
+                lineWidth: 3,
+              },
+            },
         },
         layout: {
           type: 'radial',
@@ -68,9 +74,15 @@ export default {
           preventOverlap: true,
           unitRadius: 100,
         },
-        behaviors: ['drag-canvas', 'drag-element', 'zoom-canvas'],
+        behaviors: [
+          'drag-canvas', 
+          'drag-element', 
+          'zoom-canvas',
+          'hover-activate',
+        ],
         transforms: [{ type: 'process-parallel-edges' }], // Add the transform here
       });
+
       graph.render();
     }
   },
