@@ -7,7 +7,7 @@
 
 <script>
 // 【步骤2】 引入G6
-import { Graph, Tooltip } from '@antv/g6';
+import { Graph } from '@antv/g6';
 
 export default {
   data() {
@@ -87,8 +87,9 @@ export default {
             getContent(e, items) {
               const item = items[0];
               if (item && item.data && item.data.amount1) {
+                // 只返回纯净的HTML内容，让G6的默认容器来控制样式
                 return `
-                  <div style="padding: 10px; background-color: #fff; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                  <div>
                     <div>金额1：${item.data.amount1}</div>
                     <div>金额2：${item.data.amount2}</div>
                   </div>
