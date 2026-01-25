@@ -18,9 +18,33 @@ export default {
   methods: {
     initGraph() {
       const data = {
-        nodes: new Array(16).fill(0).map((_, i) => ({ id: `${i}` })),
-        edges: new Array(15).fill(0).map((_, i) => ({ source: `${i}`, target: `${i + 1}` })),
+        nodes: [
+          { id: '1' },
+          { id: '2' },
+          { id: '3' },
+          { id: '4' },
+          { id: '5' },
+          { id: '6' },
+          { id: '7' },
+          { id: '8' },
+          { id: '9' },
+        ],
+        edges: [
+          { source: '1', target: '2' },
+          { source: '1', target: '2', id: '1-2-b' },
+          { source: '2', target: '3' },
+          { source: '3', target: '4' },
+          { source: '4', target: '1' },
+          { source: '2', target: '5' },
+          { source: '5', target: '6' },
+          { source: '6', target: '1' },
+          { source: '2', target: '7' },
+          { source: '7', target: '8' },
+          { source: '8', target: '9' },
+          { source: '9', target: '2' },
+        ],
       };
+
       const graph = new Graph({
         container: 'containerG6',
         data,
@@ -31,11 +55,21 @@ export default {
             labelText: (d) => d.id,
           },
         },
+        edge: {
+            type: 'cubic', // Set global edge type to cubic for the transform
+            style: {
+                endArrow: true,
+            }
+        },
         layout: {
-          type: 'snake',
-          padding: 50,
+          type: 'radial',
+          focusNode: '1',
+          linkDistance: 200,
+          preventOverlap: true,
+          unitRadius: 100,
         },
         behaviors: ['drag-canvas', 'drag-element'],
+        transforms: [{ type: 'process-parallel-edges' }], // Add the transform here
       });
       graph.render();
     }
