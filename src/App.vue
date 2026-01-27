@@ -7,7 +7,7 @@
       <button @click="activeTab = 'D3Demo'" :class="{ active: activeTab === 'D3Demo' }">D3.js</button>
     </div>
     <div class="content">
-      <component :is="activeTab"></component>
+      <component :is="activeTab" :graphData="g6Data"></component>
     </div>
   </div>
 </template>
@@ -28,7 +28,34 @@ export default {
   },
   data() {
     return {
-      activeTab: 'G6Demo'
+      activeTab: 'G6Demo',
+      g6Data: {
+        nodes: [
+          { id: '1' },
+          { id: '2' },
+          { id: '3' },
+          { id: '4' },
+          { id: '5' },
+          { id: '6' },
+          { id: '7' },
+          { id: '8' },
+          { id: '9' },
+        ],
+        edges: [
+          { source: '1', target: '2', data: { amount1: '1000元', amount2: '5000元' } },
+          { source: '1', target: '2', id: '1-2-b', data: { amount1: '2000元', amount2: '3000元' } },
+          { source: '2', target: '3', data: { amount1: '1500元', amount2: '4500元' } },
+          { source: '3', target: '4', data: { amount1: '3000元', amount2: '2000元' } },
+          { source: '4', target: '1', data: { amount1: '2500元', amount2: '3500元' } },
+          { source: '2', target: '5', data: { amount1: '4000元', amount2: '1000元' } },
+          { source: '5', target: '6', data: { amount1: '500元', amount2: '5500元' } },
+          { source: '6', target: '1', data: { amount1: '6000元', amount2: '1000元' } },
+          { source: '2', target: '7', data: { amount1: '1200元', amount2: '2800元' } },
+          { source: '7', target: '8', data: { amount1: '3200元', amount2: '1800元' } },
+          { source: '8', target: '9', data: { amount1: '4200元', amount2: '800元' } },
+          { source: '9', target: '2', data: { amount1: '2200元', amount2: '4800元' } },
+        ],
+      }
     };
   }
 };
