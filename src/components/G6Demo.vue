@@ -87,7 +87,6 @@ export default {
             getContent(e, items) {
               const item = items[0];
               if (item && item.data && item.data.amount1) {
-                // 只返回纯净的HTML内容，让G6的默认容器来控制样式
                 return `
                   <div>
                     <div>金额1：${item.data.amount1}</div>
