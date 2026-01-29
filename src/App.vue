@@ -26,6 +26,11 @@ export default {
       activeName: "DateRangeDemo",
     };
   },
+  methods: {
+    handleClick(tab, event) {
+      // console.log(tab, event);
+    },
+  },
 };
 </script>
 
