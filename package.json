@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@antv/g6": "^5.0.51",
+    "@antv/g6": "4.8.17",
     "@observablehq/plot": "^0.6.17",
     "core-js": "^3.8.3",
     "cytoscape": "^3.33.1",
