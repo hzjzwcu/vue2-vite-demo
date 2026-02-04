@@ -81,12 +81,17 @@ export default {
         container: container,
         width,
         height,
-        // 布局
+        fitView: true, // 新增：使图表适应视图并居中
+        // 布局 - 切换为 radial 布局
         layout: {
-          type: 'concentric',
-          preventOverlap: true,
-          nodeSize: 100,
-          minNodeSpacing: 80,
+          type: 'radial',
+          unitRadius: 120,    // 每层环的半径，控制环间距
+          linkDistance: 120,  // 边的理想长度，控制节点间距
+          preventOverlap: true, // 防止节点重叠
+          nodeSize: 90,         // 节点大小，用于防重叠计算
+          // nodeSpacing: 50,      // 节点间距，增加斥力
+          // radial 布局的节点排序依据，按度数排序可以使更重要的节点靠中心
+          sortBy: 'degree',
         },
         // 交互模式
         modes: {
