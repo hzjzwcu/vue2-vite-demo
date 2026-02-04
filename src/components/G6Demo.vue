@@ -233,10 +233,10 @@ export default {
         
         this.tooltip.visible = true;
         this.tooltip.content = `
-          <ul>
-            <li>内部金额: ${model.data ? model.data.intraGuarAmt : 'N/A'}</li>
-            <li>外部金额: ${model.data ? model.data.extraGuarAmt : 'N/A'}</li>
-          </ul>`;
+          <div>
+            <div>内部金额: ${model.data ? model.data.intraGuarAmt : 'N/A'}</div>
+            <div>外部金额: ${model.data ? model.data.extraGuarAmt : 'N/A'}</div>
+          </div>`;
         this.updateTooltipPosition(evt);
       });
 
@@ -318,12 +318,5 @@ export default {
   z-index: 1001;
   pointer-events: none; /* 防止 tooltip 本身捕获鼠标事件 */
   transition: opacity 0.2s;
-}
-
-/* 覆盖 tooltip 内容的默认 ul 样式 */
-.custom-tooltip ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 </style>
