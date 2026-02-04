@@ -59,7 +59,8 @@ export default {
   watch: {
     graphData(newData) {
       if (this.graph) {
-        this.graph.changeData(newData);
+        const processedData = this.processParallelEdges(newData);
+        this.graph.changeData(processedData);
       }
     },
   },
@@ -101,6 +102,7 @@ export default {
         },
         // 默认边样式
         defaultEdge: {
+          // type 会被动态覆盖，这里无需指定
           style: {
             lineWidth: 1,
             stroke: '#666',
@@ -128,12 +130,72 @@ export default {
       // 绑定事件
       this.bindEvents();
 
+      // 预处理数据以支持平行边
+      const processedData = this.processParallelEdges(this.graphData);
+
       // 加载数据并渲染
-      this.graph.data(this.graphData);
+      this.graph.data(processedData);
       this.graph.render();
 
       // 渲染后让容器可见
       container.style.opacity = 1;
+    },
+
+    processParallelEdges(data) {
+      // 深拷贝数据，避免修改原始 prop
+      const processedData = JSON.parse(JSON.stringify(data));
+      const edgeCount = {};
+
+      // 1. 统计每对节点之间的边数
+      processedData.edges.forEach(edge => {
+        const key = `${edge.source}-${edge.target}`;
+        const reverseKey = `${edge.target}-${edge.source}`;
+        const countKey = edgeCount[key] ? key : reverseKey;
+
+        if (edgeCount[countKey]) {
+          edgeCount[countKey]++;
+        } else {
+          edgeCount[countKey] = 1;
+        }
+      });
+      
+      const multiEdges = {};
+      
+      // 2. 处理边，为平行边设置曲线
+      processedData.edges.forEach(edge => {
+        const key = `${edge.source}-${edge.target}`;
+        const reverseKey = `${edge.target}-${edge.source}`;
+
+        let countKey = '';
+        if (edgeCount[key] > 1) {
+          countKey = key;
+        } else if (edgeCount[reverseKey] > 1) {
+          countKey = reverseKey;
+        }
+        
+        if (countKey) {
+          // 如果是平行边
+          if (!multiEdges[countKey]) {
+            multiEdges[countKey] = {
+              count: edgeCount[countKey],
+              index: 0,
+            };
+          }
+
+          const { count, index } = multiEdges[countKey];
+          
+          edge.type = 'quadratic';
+          // 为每条平行边设置不同的弯曲偏移量
+          edge.curveOffset = 20 * (index - (count - 1) / 2);
+          
+          multiEdges[countKey].index++;
+        } else {
+          // 如果是唯一的边
+          edge.type = 'line';
+        }
+      });
+
+      return processedData;
     },
 
     bindEvents() {
@@ -166,10 +228,10 @@ export default {
         
         this.tooltip.visible = true;
         this.tooltip.content = `
-          <ul>
-            <li>Source: ${model.source}</li>
-            <li>Target: ${model.target}</li>
-          </ul>`;
+          <div>
+            <div>内部金额: ${model.data ? model.data.intraGuarAmt : 'N/A'}</div>
+            <div>外部金额: ${model.data ? model.data.extraGuarAmt : 'N/A'}</div>
+          </div>`;
         this.updateTooltipPosition(evt);
       });
 
