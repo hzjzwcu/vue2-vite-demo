@@ -3,23 +3,30 @@
     <!-- 1. G6 渲染的容器 -->
     <div id="g6-container"></div>
 
-    <!-- 2. 弹窗的 DOM 结构，使用 v-if 控制显示/隐藏 -->
+    <!-- 2. 节点点击弹窗 -->
     <div v-if="isModalVisible" class="modal-overlay" @click.self="closeModal">
       <div class="modal-content">
         <h3>节点信息</h3>
         <p><strong>ID:</strong> {{ selectedNode.id }}</p>
-        <!-- 可以展示更多节点属性 -->
         <p v-for="(value, key) in selectedNode.properties" :key="key">
           <strong>{{ key }}:</strong> {{ value }}
         </p>
         <button @click="closeModal">关闭</button>
       </div>
     </div>
+    
+    <!-- 3. 自定义边 Tooltip -->
+    <div 
+      v-show="tooltip.visible" 
+      :style="tooltip.style"
+      class="custom-tooltip"
+      v-html="tooltip.content"
+    ></div>
   </div>
 </template>
 
 <script>
-import G6, { Tooltip } from "@antv/g6";
+import G6 from "@antv/g6";
 
 export default {
   name: "G6Demo",
@@ -34,6 +41,14 @@ export default {
       graph: null,
       isModalVisible: false,
       selectedNode: {},
+      tooltip: {
+        visible: false,
+        content: '',
+        style: {
+          left: '0px',
+          top: '0px',
+        },
+      },
     };
   },
   mounted() {
@@ -61,38 +76,16 @@ export default {
       const width = container.scrollWidth;
       const height = container.scrollHeight || 600;
 
-      // 实例化 Tooltip 插件
-      const tooltip = new G6.Tooltip({
-        container: container, // 将 Tooltip 的容器指定为图表容器
-        offsetX: 10,
-        offsetY: 10,
-        itemTypes: ['edge'], // 只对边生效
-        // 自定义 Tooltip 内容
-        getContent(e) {
-          const out = document.createElement('div');
-          out.style.width = 'fit-content';
-          const model = e.item.getModel();
-          out.innerHTML = `
-            <ul>
-              <li>Source: ${model.source}</li>
-              <li>Target: ${model.target}</li>
-            </ul>`;
-          return out;
-        },
-      });
-
       this.graph = new G6.Graph({
         container: container,
         width,
         height,
-        // 将 Tooltip 插件加入到 Graph 中
-        plugins: [tooltip],
         // 布局
         layout: {
           type: 'concentric',
           preventOverlap: true,
           nodeSize: 100,
-          minNodeSpacing: 80, // 节点之间的最小间距，增大以拉开距离
+          minNodeSpacing: 80,
         },
         // 交互模式
         modes: {
@@ -110,24 +103,24 @@ export default {
         defaultEdge: {
           style: {
             lineWidth: 1,
-            stroke: '#666', // 深灰色线条
-            lineAppendWidth: 10, // 增加边的拾取范围，便于触发鼠标事件
+            stroke: '#666',
+            lineAppendWidth: 10,
             endArrow: {
               path: "M 0,0 L 8,4 L 8,-4 Z",
-              fill: '#666', // 深灰色箭头
+              fill: '#666',
             },
           },
         },
         // 节点状态样式
         nodeStateStyles: {
           hover: {
-            cursor: 'pointer', // 鼠标指针变为小手
+            cursor: 'pointer',
           },
         },
         // 边状态样式
         edgeStateStyles: {
           hover: {
-            cursor: 'pointer', // 鼠标指针变为小手
+            cursor: 'pointer',
           },
         },
       });
@@ -155,29 +148,48 @@ export default {
         this.isModalVisible = true;
       });
 
-      // 鼠标进入节点
+      // 节点悬停事件
       this.graph.on("node:mouseenter", (evt) => {
         const { item } = evt;
         this.graph.setItemState(item, "hover", true);
       });
-
-      // 鼠标离开节点
       this.graph.on("node:mouseleave", (evt) => {
         const { item } = evt;
         this.graph.setItemState(item, "hover", false);
       });
 
-      // 鼠标进入边
+      // --- 自定义 Tooltip 的事件 ---
       this.graph.on("edge:mouseenter", (evt) => {
         const { item } = evt;
+        const model = item.getModel();
         this.graph.setItemState(item, "hover", true);
+        
+        this.tooltip.visible = true;
+        this.tooltip.content = `
+          <ul>
+            <li>Source: ${model.source}</li>
+            <li>Target: ${model.target}</li>
+          </ul>`;
+        this.updateTooltipPosition(evt);
       });
 
-      // 鼠标离开边
+      this.graph.on("edge:mousemove", (evt) => {
+        this.updateTooltipPosition(evt);
+      });
+      
       this.graph.on("edge:mouseleave", (evt) => {
         const { item } = evt;
         this.graph.setItemState(item, "hover", false);
+        this.tooltip.visible = false;
       });
+    },
+
+    updateTooltipPosition(evt) {
+      const { clientX, clientY } = evt.originalEvent;
+      this.tooltip.style = {
+        left: `${clientX + 10}px`,
+        top: `${clientY + 10}px`,
+      };
     },
 
     closeModal() {
@@ -226,5 +238,25 @@ export default {
   margin-top: 15px;
   padding: 8px 16px;
   cursor: pointer;
+}
+
+/* 自定义 Tooltip 样式 */
+.custom-tooltip {
+  position: fixed;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1001;
+  pointer-events: none; /* 防止 tooltip 本身捕获鼠标事件 */
+  transition: opacity 0.2s;
+}
+
+/* 覆盖 tooltip 内容的默认 ul 样式 */
+.custom-tooltip ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 </style>
