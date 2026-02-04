@@ -186,7 +186,7 @@ export default {
           
           edge.type = 'quadratic';
           // 为每条平行边设置不同的弯曲偏移量
-          edge.curveOffset = 20 * (index - (count - 1) / 2);
+          edge.curveOffset = 40 * (index - (count - 1) / 2); // 增加系数以加大弯曲程度
           
           multiEdges[countKey].index++;
         } else {
@@ -228,10 +228,10 @@ export default {
         
         this.tooltip.visible = true;
         this.tooltip.content = `
-          <div>
-            <div>内部金额: ${model.data ? model.data.intraGuarAmt : 'N/A'}</div>
-            <div>外部金额: ${model.data ? model.data.extraGuarAmt : 'N/A'}</div>
-          </div>`;
+          <ul>
+            <li>内部金额: ${model.data ? model.data.intraGuarAmt : 'N/A'}</li>
+            <li>外部金额: ${model.data ? model.data.extraGuarAmt : 'N/A'}</li>
+          </ul>`;
         this.updateTooltipPosition(evt);
       });
 
