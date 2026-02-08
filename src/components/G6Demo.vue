@@ -151,6 +151,20 @@ export default {
       const processedData = JSON.parse(JSON.stringify(data));
       const edgeCount = {};
 
+      // --- Manual Label Wrapping ---
+      if (processedData.nodes) {
+        processedData.nodes.forEach(node => {
+          node.label = this.wrapText(node.label, 8); // Wrap text to 8 chars per line
+          // Assign basic label style, G6 will handle rendering of '\n'
+          node.style = {
+            ...node.style,
+            labelPlacement: 'bottom',
+            labelFill: '#000',
+            labelFontSize: 12,
+          };
+        });
+      }
+
       // 1. 统计每对节点之间的边数
       processedData.edges.forEach(edge => {
         const key = `${edge.source}-${edge.target}`;
@@ -261,6 +275,15 @@ export default {
 
     closeModal() {
       this.isModalVisible = false;
+    },
+
+    wrapText(text, maxChars) {
+      if (!text) return '';
+      let wrappedText = '';
+      for (let i = 0; i < text.length; i += maxChars) {
+        wrappedText += text.substring(i, i + maxChars) + '\n';
+      }
+      return wrappedText.trim();
     },
   },
 };
